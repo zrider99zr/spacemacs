@@ -1,0 +1,736 @@
+;; -*- nameless-current-name: "ddls"; lexical-binding: t -*-
+;;; core-double-dot-layer-system.el --- Spacemacs Core File
+;;
+;; Copyright (c) 2012-2018 Sylvain Benner & Contributors
+;;
+;; Author: Sylvain Benner <sylvain.benner@gmail.com>
+;; URL: https://github.com/syl20bnr/spacemacs
+;;
+;; This file is not part of GNU Emacs.
+;;
+;; Spacemacs Layer system 2.0
+;;
+;;; License: GPLv3
+
+
+;; Interface
+
+(defmacro layers: (&rest layers)
+  "Define used layers."
+  (declare (indent defun))
+  ;; (setq dotspacemacs--configuration-layers-saved
+  ;;       dotspacemacs-configuration-layers)
+  )
+
+(defmacro packages: (&rest packages-specs)
+  "Define packages owned by the layer where this macro is called."
+  (declare (indent defun))
+  (let ((layer-name (ddls//get-directory-name
+                     (if load-file-name
+                         ;; File is being loaded
+                         (file-name-directory load-file-name)
+                       ;; File is being evaluated
+                       default-directory))))
+    `(setq ,(ddls//package:-variable-name layer-name) ',packages-specs)))
+
+(defun ddls//package:-variable-name (layer-name)
+  "Return the variable name containing the list of package specs for LAYER-NAME."
+  (intern (format "%S-packages" layer-name)))
+
+(defmacro init: ()
+  "Initialize a package."
+  (declare (indent defun)))
+
+(defmacro pre-init: ()
+  "Initialize a package before calling its `init:'."
+  (declare (indent defun)))
+
+(defmacro post-init: ()
+  "Initialize a package after calling its `init:'."
+  (declare (indent defun)))
+
+(defmacro key-bindings: ()
+  "Define major-mode or minor mode key-bindings behind the leader keys."
+  (declare (indent defun))
+  )
+
+
+;; Variables
+
+(defconst ddls-layers-directory
+  (expand-file-name (concat spacemacs-start-directory "layers/"))
+  "Spacemacs layers directory.")
+
+(defconst ddls-private-directory
+  (expand-file-name (concat spacemacs-start-directory "private/"))
+  "Spacemacs private layers base directory.")
+
+(defconst ddls-private-layer-directory
+  (let ((dotspacemacs-layer-dir
+         (when dotspacemacs-directory
+           (expand-file-name
+            (concat dotspacemacs-directory "layers/")))))
+    (if (and dotspacemacs-directory
+             (file-exists-p dotspacemacs-layer-dir))
+        dotspacemacs-layer-dir
+      ddls-private-directory))
+  "Spacemacs default directory for private layers.")
+
+(defvar ddls-categories '()
+  "List of strings corresponding to category names. A category is a
+directory with a name starting with `+'.")
+
+(defvar ddls-exclude-all-layers nil
+  "If non nil then only the distribution layer is loaded.")
+
+(defvar ddls--inhibit-warnings nil
+  "If non-nil then warning messages emitted by the layer system are ignored.")
+
+;; Classes
+
+;; class: layer
+
+(defconst ddls--indexed-layers-filepath (concat ddls-layers-directory "index.el")
+  "File containing the cached index of all layers shipped with Spacemacs.")
+
+(defvar ddls--indexed-layers (make-hash-table :size 1024)
+  "Hash map to index `ddls-layer' objects by their names.")
+
+(defvar ddls--used-layers '()
+  "A non-sorted list of used layer name symbols.")
+
+(defvar ddls--main-layer-filename "main.el"
+  "File name of the mandatory layer file.")
+
+(defclass ddls-layer ()
+  ((name :initarg :name
+         :type symbol
+         :documentation "Name of the layer.")
+   (dir :initarg :dir
+        :initform nil
+        :type (satisfies (lambda (x) (or (null x) (stringp x))))
+        :documentation "Absolute path to the layer directory.")
+   (packages-specs :initarg :packages
+             :initform nil
+             :type list
+             :documentation "List of package symbols declared in this layer.")
+   (select-query :initarg :select-query
+                 :initform nil
+                 :type list
+                 :documentation "Query to select used packages.")
+   (selected-packages :initarg :selected-packages
+             :initform nil
+             :type list
+             :documentation "List of used package names.")
+   (variables :initarg :variables
+              :initform nil
+              :type list
+              :documentation "A list of variable-value pairs.")
+   (lazy-install :initarg :lazy-install
+                 :initform nil
+                 :type boolean
+                 :documentation
+                 "If non-nil then the layer needs to be installed")
+   (disabled :initarg :disabled-for
+             :initform nil
+             :type list
+             :documentation "A list of layers where this layer is disabled.")
+   (enabled :initarg :enabled-for
+            :initform 'unspecified
+            :type (satisfies (lambda (x) (or (listp x) (eq 'unspecified x))))
+            :documentation
+            (concat "A list of layers where this layer is enabled. "
+                    "(Takes precedence over `:disabled-for'.)"))
+   ;; Note:
+   ;; 'can-shadow' is a commutative relation:
+   ;;     if Y 'can-shadow' X then X 'can-shadow' Y
+   ;; but the 'shadow' operation is not commutative, the order of the operands
+   ;; is determined by the order of the layers in the dotfile
+   ;; variable `dotspacemacs-configuration-layers'
+   (can-shadow :initarg :can-shadow
+               :initform 'unspecified
+               :type (satisfies (lambda (x) (or (listp x) (eq 'unspecified x))))
+               :documentation "A list of layers this layer can shadow."))
+  "A configuration layer.")
+
+(defmethod ddls-layer/initialize ((layer ddls-layer))
+  "Initialize the layer which means to load its main file and set the packages."
+  ;; layer objects have a main file so we don't have to check for the
+  ;; main file existence
+  (ddls//load-file (concat (oref layer :dir) ddls--main-layer-filename))
+  (let* ((lname (oref layer :name))
+         (pspecs (symbol-value (intern (format "%S-packages" lname)))))
+    ;; create packages form the layer and index them
+    (oset layer :selected-packages nil)
+    (dolist (specs pspecs)
+      (let* ((pname (ddls//get-package-name-from-specs specs))
+             (package (ddls/make-indexed-package-from-specs
+                       specs (ddls/get-indexed-package pname))))
+        (ddls//add-indexed-package package)
+        (ddls-layer/select-package layer package)))))
+
+(defmethod ddls-layer/select-package ((layer ddls-layer) package)
+  "Select package by applying `:select-query' slot.
+If the package is selected then it is added to `:selected-packages' list."
+  (let* ((query (oref layer :select-query))
+         (pname (oref package :name)))
+    (when (or
+           ;; (my-layer ...))
+           (null query)
+           ;; (my-layer :packages package1 package2 ...)
+           (and (not (eq 'not (car query)))
+                (memq pname query))
+           ;; (my-layer :packages (not package1 package2 ...))
+           (and (eq 'not (car query))
+                (not (memq pname query))))
+      (push pname (oref layer :selected-packages)))))
+
+(defmethod ddls-layer/owned-packages ((layer ddls-layer) &optional props)
+  "Return the list of owned packages-specs by LAYER.
+If PROPS is non-nil then return packages-specs as lists with their properties.
+LAYER has to be installed for this method to work properly."
+  (delq nil (mapcar
+             (lambda (x)
+               (let* ((pkg-name (if (listp x) (car x) x))
+                      (pkg (configuration-layer/get-package pkg-name)))
+                 (when (eq (oref layer :name) (car (oref pkg :owners))) x)))
+             (ddls-layer/get-packages layer props))))
+
+(defmethod ddls-layer/owned-packages ((layer nil) &optional props)
+  "Accept nil as argument and return nil."
+  nil)
+
+(defmethod ddls-layer/get-local-directory ((layer ddls-layer))
+  "Return the local directory of LAYER."
+  (concat (oref layer :dir) "local/"))
+
+(defmethod ddls-layer/get-shadowing-layers ((layer ddls-layer))
+  "Return the list of used layers that shadow LAYER."
+  (let ((rank (cl-position (oref layer :name) ddls--used-layers))
+        (shadow-candidates (oref layer :can-shadow))
+        shadowing-layers)
+    (when (and (numberp rank)
+               (not (eq 'unspecified shadow-candidates))
+               (listp shadow-candidates))
+      (mapcar
+       (lambda (other)
+         (let ((orank (cl-position other ddls--used-layers)))
+           ;; OTHER shadows LAYER if and only if OTHER's rank is bigger than
+           ;; LAYER's rank.
+           (when (and (numberp orank) (< rank orank))
+             (add-to-list 'shadowing-layers other))))
+       ;; since the 'can-shadow' relation is commutative it is safe to use this
+       ;; list, i.e. if LAYER can shadow layers X and Y then X and Y can shadow
+       ;; LAYER.
+       shadow-candidates))
+    shadowing-layers))
+
+(defmethod ddls-layer/get-packages ((layer ddls-layer) &optional props)
+  "Return the list of packages-specs for LAYER.
+If PROPS is non-nil then return packages-specs as lists along with their
+properties."
+  (let ((all (eq 'all (oref layer :selected-packages))))
+    (delq nil (mapcar
+               (lambda (x)
+                 (let ((pkg-name (if (listp x) (car x) x)))
+                   (when (or all (memq pkg-name
+                                       (oref layer :selected-packages)))
+                     (if props x pkg-name))))
+               (oref layer :packages)))))
+
+(defmethod ddls-layer/set-specs ((layer ddls-layer) specs)
+  "Set slots info from LAYER-SPECS for corresponding indexed layer."
+  (let ((disabled (when (listp specs)
+                    (spacemacs/mplist-get specs :disabled-for)))
+        (enabled (if (and (listp specs)
+                          (memq :enabled-for specs))
+                     (spacemacs/mplist-get specs :enabled-for)
+                   'unspecified))
+        (variables (when (listp specs)
+                     (spacemacs/mplist-get specs :variables)))
+        (shadow (if (and (listp specs)
+                         (memq :can-shadow specs))
+                    (spacemacs/mplist-get specs :can-shadow)
+                  'unspecified))
+        (select-query (when (listp specs)
+                        (spacemacs/mplist-get specs :packages))))
+    (oset layer :disabled-for disabled)
+    (oset layer :enabled-for enabled)
+    (oset layer :variables variables)
+    (unless (eq 'unspecified shadow)
+      (oset layer :can-shadow shadow))
+    ;; we need to unwrap `select-query'
+    (oset layer :select-query (if (and (not (null (car select-query)))
+                                       (listp (car select-query)))
+                                  (car select-query)
+                                select-query))))
+
+(defmethod ddls-layer/mark-as-used ((layer ddls-layer))
+  "Mark the layer as used by adding it to the used layers list."
+  (add-to-list 'ddls--used-layers (oref layer :name)))
+
+(defun ddls/make-indexed-layer (name dir)
+  "Return a `ddls-layer' object whose goal is to be indexed.
+NAME is the name of the layer passed as a string.
+DIR is the directory where the layer is, if it is nil then search in the indexed
+layers for the path.
+Return nil if the passed DIR is not valid."
+  (let ((obj (ddls-layer (symbol-name name) :name name)))
+    (if (or (null dir)
+            (and dir (not (file-exists-p dir))))
+        (ddls//warning "Cannot make layer %S without a valid directory!" name)
+      (let* ((dir (file-name-as-directory dir)))
+        (oset obj :dir dir)
+        obj))))
+
+(defun ddls//get-layer-name-from-specs (specs)
+  "Return the name symbol of layer given the passed SPECS."
+  (if (listp specs) (car specs) specs))
+
+(defun ddls/layer-used-p (name)
+  "Return non-nil if NAME is the name of a used and non-shadowed layer."
+  (or (eq 'dotfile name)
+      (let ((obj (ddls/get-indexed-layer name)))
+        (when obj
+          (and (not (ddls-layer/get-shadowing-layers obj))
+               (memq name ddls--used-layers))))))
+
+;; class: package
+
+(defvar ddls--indexed-packages (make-hash-table :size 2048)
+  "Hash map to index `ddls-package' objects by their names.")
+
+(defvar ddls--used-packages '()
+  "An alphabetically sorted list of used package names.")
+
+(defvar ddls--protected-packages nil
+  "A list of packages that will be protected from removal as orphans.")
+
+(defconst ddls--package-properties-read-only-p nil
+  "If non-nil then package properties are read only and cannot be overriden.")
+
+(defclass ddls-package ()
+  ((name :initarg :name
+         :type symbol
+         :documentation "Name of the package.")
+   (min-version :initarg :min-version
+                :initform nil
+                :type list
+                :documentation "Minimum version to install as a version list.")
+   (owners :initarg :owners
+           :initform nil
+           :type list
+           :documentation "The layer defining the init function.")
+   (pre-layers :initarg :pre-layers
+               :initform '()
+               :type list
+               :documentation "List of layers with a pre-init function.")
+   (post-layers :initarg :post-layers
+                :initform '()
+                :type list
+                :documentation "List of layers with a post-init function.")
+   (location :initarg :location
+             :initform elpa
+             :type (satisfies (lambda (x)
+                                (or (stringp x)
+                                    (memq x '(built-in local site elpa))
+                                    (and (listp x) (eq 'recipe (car x))))))
+             :documentation "Location of the package.")
+   (toggle :initarg :toggle
+           :initform t
+           :type (satisfies (lambda (x) (or (symbolp x) (listp x))))
+           :documentation
+           "Package is enabled/installed if toggle evaluates to non-nil.")
+   (step :initarg :step
+         :initform nil
+         :type (satisfies (lambda (x) (member x '(nil bootstrap pre))))
+         :documentation "Initialization step.")
+   (lazy-install :initarg :lazy-install
+                 :initform nil
+                 :type boolean
+                 :documentation
+                 "If non-nil then the package needs to be installed")
+   (protected :initarg :protected
+              :initform nil
+              :type boolean
+              :documentation
+              "If non-nil then this package cannot be excluded.")
+   (excluded :initarg :excluded
+             :initform nil
+             :type boolean
+             :documentation
+             "If non-nil this package is excluded from all layers.")
+   (requires :initarg :requires
+             :initform nil
+             :type list
+             :documentation
+             "Packages that must be enabled for this package to be enabled.")))
+
+(defmethod ddls-package/mark-as-used ((pkg ddls-package))
+  "Mark the package as used by adding it to the used packages list."
+  (add-to-list 'ddls--used-packages (oref pkg :name)))
+
+(defmethod ddls-package/toggled-p ((pkg ddls-package) &optional inhibit-msg)
+  "Evaluate the `toggle' slot of passed PKG.
+If INHIBIT-MSG is non nil then any message emitted by the toggle evaluation
+is ignored."
+  (let ((message-log-max (unless inhibit-msg message-log-max))
+        (toggle (oref pkg :toggle)))
+    (eval toggle t)))
+
+(defmethod ddls-package/reqs-satisfied-p ((pkg ddls-package) &optional inhibit-msg)
+  "Check if requirements of a package are all enabled.
+If INHIBIT-MSG is non nil then any message emitted by the toggle evaluation
+is ignored."
+  (not (memq nil (mapcar
+                  (lambda (dep-pkg)
+                    (let ((pkg-obj (configuration-layer/get-package dep-pkg)))
+                      (when pkg-obj
+                        (ddls-package/enabled-p pkg-obj inhibit-msg))))
+                  (oref pkg :requires)))))
+
+(defmethod ddls-package/enabled-p ((pkg ddls-package) &optional inhibit-msg)
+  "Check if a package is enabled.
+This checks the excluded property, evaluates the toggle, if any, and recursively
+checks whether dependent packages-specs are also enabled.
+If INHIBIT-MSG is non nil then any message emitted by the toggle evaluation
+is ignored."
+  (and (or (oref pkg :protected) (not (oref pkg :excluded)))
+       (ddls-package/reqs-satisfied-p pkg inhibit-msg)
+       (ddls-package/toggled-p pkg inhibit-msg)))
+
+(defmethod ddls-package/used-p ((pkg ddls-package))
+  "Return non-nil if PKG is a used package."
+  (and (not (null (oref pkg :owners)))
+       (not (oref pkg :excluded))
+       (ddls-package/enabled-p pkg t)))
+
+(defmethod ddls-package/distant-p ((pkg ddls-package))
+  "Return non-nil if PKG is a distant package (i.e. not built-in Emacs)."
+  (and (not (memq (oref pkg :location) '(built-in site local)))
+       (not (stringp (oref pkg :location)))))
+
+(defmethod ddls-package/get-safe-owner ((pkg ddls-package))
+  "Safe method to return the name of the layer which owns PKG."
+  ;; The owner of a package is the first *used* layer in `:owners' slot.
+  ;; Note: for packages-specs in `ddls--used-packages' the owner is
+  ;; always the car of the `:owners' slot.
+  (let ((layers (oref pkg :owners)))
+    (while (and (consp layers)
+                (not (ddls/layer-used-p (car layers))))
+      (pop layers))
+    (when (ddls/layer-used-p (car layers))
+      (car layers))))
+
+(defmethod ddls-package/set-property2 ((pkg ddls-package) slot value)
+  "Set SLOT to the given VALUE for the package PKG.
+If `ddls--package-properties-read-only-p' is non-nil then VALUE
+is not set for the given SLOT."
+  (unless ddls--package-properties-read-only-p
+    (set-slot-value pkg slot value)))
+
+(defun ddls/make-indexed-package-from-specs (specs lname &optional obj)
+  "Return a `ddls-package' object based on SPECS.
+LNAME is the name of the layer where the SPECS are listed.
+If OBJ is non nil then copy SPECS properties into OBJ, otherwise create a new
+object."
+  (let* ((pname (ddls//get-package-name-from-specs specs))
+         (pname-str (symbol-name pname))
+         (layer (unless (eq 'dotfile lname) (ddls/get-indexed-layer lname)))
+         (min-version (when (listp specs) (plist-get (cdr specs) :min-version)))
+         (step (when (listp specs) (plist-get (cdr specs) :step)))
+         (toggle (when (listp specs) (plist-get (cdr specs) :toggle)))
+         (requires (when (listp specs) (plist-get (cdr specs) :requires)))
+         (requires (if (listp requires) requires (list requires)))
+         (excluded (when (listp specs) (plist-get (cdr specs) :excluded)))
+         (location (when (listp specs) (plist-get (cdr specs) :location)))
+         (protected (when (listp specs) (plist-get (cdr specs) :protected)))
+         (init-func (intern (format "%S/init-%S" lname pname)))
+         (pre-init-func (intern (format "%S/pre-init-%S" lname pname)))
+         (post-init-func (intern (format "%S/post-init-%S" lname pname)))
+         (copyp (not (null obj)))
+         (obj (if obj obj (ddls-package pname-str :name pname)))
+         (ownerp (or (and (eq 'dotfile lname)
+                          (null (oref obj :owners)))
+                     (fboundp init-func))))
+    (when min-version
+      (ddls-package/set-property2 obj :min-version (version-to-list min-version)))
+    (when step
+      (ddls-package/set-property2 obj :step step))
+    (when toggle
+      (ddls-package/set-property2 obj :toggle toggle))
+    (when (and ownerp requires)
+      (ddls-package/set-property2 obj :requires requires))
+    (ddls-package/set-property2 obj :excluded
+                               (and (ddls/layer-used-p lname)
+                                    (or excluded (oref obj :excluded))))
+    (when location
+      (if (and (listp location)
+               (eq (car location) 'recipe)
+               (eq (plist-get (cdr location) :fetcher) 'local))
+          (cond
+           (layer (let ((path (expand-file-name
+                               (format "%s%s"
+                                       (ddls-layer/get-local-directory layer)
+                                       pname-str))))
+                    (ddls-package/set-property2
+                     obj :location `(recipe :fetcher file :path ,path))))
+           ((eq 'dotfile lname) nil))
+        (ddls-package/set-property2 obj :location location)))
+    ;; cannot override protected packages
+    (unless copyp
+      ;; a bootstrap package is protected
+      (ddls-package/set-property2
+       obj :protected (or protected (eq 'bootstrap step)))
+      (when protected
+        (add-to-list 'ddls--protected-packages pname)))
+    (when ownerp
+      ;; warn about mutliple owners
+      (when (and (oref obj :owners)
+                 (not (memq lname (oref obj :owners))))
+        (ddls//warning
+         (format (concat "More than one init function found for "
+                         "package %S. Previous owner was %S, "
+                         "replacing it with layer %S.")
+                 pname (car (oref obj :owners)) lname)))
+      ;; last owner wins over the previous one
+      (object-add-to-list obj :owners lname))
+    ;; check consistency between package and defined init functions
+    (unless (or ownerp
+                (eq 'dotfile lname)
+                (eq 'system lname)
+                (fboundp pre-init-func)
+                (fboundp post-init-func)
+                (oref obj :excluded))
+      (ddls//warning
+       (format (concat "package %s not initialized in layer %s, "
+                       "you may consider removing this package from "
+                       "the package list or use the :toggle keyword "
+                       "instead of a `when' form.")
+               pname lname)))
+    ;; check if toggle can be applied
+    (when (and (not ownerp)
+               (and (not (eq 'unspecified toggle))
+                    toggle))
+      (ddls//warning
+       (format (concat "Ignoring :toggle for package %s because "
+                       "layer %S does not own it.")
+               pname lname)))
+    ;; check if requires can be applied
+    (when (and (not ownerp) requires)
+      (ddls//warning
+       (format (concat "Ignoring :requires for package %s because "
+                       "layer %S does not own it.")
+               pname lname)))
+    (when (fboundp pre-init-func)
+      (object-add-to-list obj :pre-layers lname))
+    (when (fboundp post-init-func)
+      (object-add-to-list obj :post-layers lname))
+    obj))
+
+(defun ddls/get-indexed-package (name)
+  "Return a package object with name NAME.
+Return nil if package object is not found."
+  (when (ht-contains? ddls--indexed-packages name)
+    (ht-get ddls--indexed-packages name)))
+
+(defun ddls//get-package-name-from-specs (specs)
+  "Return the name symbol of package given the passed SPECS."
+  (if (listp specs) (car specs) specs))
+
+(defun ddls/package-used-p (name)
+  "Return non-nil if NAME is the name of a used package."
+  (let ((obj (ddls/get-indexed-package name)))
+    (and obj (ddls-package/get-safe-owner obj)
+         (not (oref obj :excluded))
+         (not (memq nil (mapcar
+                         'ddls/package-used-p
+                         (oref obj :requires)))))))
+
+
+;; System Functions
+
+(defun ddls/test ()
+  (interactive)
+  ;; tests
+  (setq gc-cons-threshold 402653184 gc-cons-percentage 0.6)
+  (let ((start-time (current-time))
+        (ddls--inhibit-warnings t))
+    ;; reinit data
+    (setq ddls--indexed-layers (make-hash-table :size 1024))
+    (setq ddls--used-layers nil)
+    (setq ddls--indexed-packages (make-hash-table :size 2048))
+    (setq ddls--used-packages nil)
+    ;; execute test
+    (setq ptime (current-time))
+    (ddls/index-layers)
+    (message ">>>>>>>> layer indexing time: %.3fs" (float-time (time-subtract (current-time) ptime)))
+    (setq ptime (current-time))
+    (ddls/set-used-layers-specs)
+    (message ">>>>>>>> layer specs time: %.3fs" (float-time (time-subtract (current-time) ptime)))
+    (setq ptime (current-time))
+    (dotimes (i 5) (ddls/initialize-used-layers))
+    (message ">>>>>>>> layer initialization time: %.3fs" (float-time (time-subtract (current-time) ptime)))
+    (message ">>>>>>>> total elapsed time: %.3fs"
+             (float-time (time-subtract (current-time) start-time))))
+  (setq gc-cons-threshold (car dotspacemacs-gc-cons) gc-cons-percentage (cadr dotspacemacs-gc-cons)))
+
+(defun ddls/create-spacemacs-layers-index-file ()
+  "Scan `ddls-layers-directory' to index layers then cache the index in a file."
+  (interactive)
+  (setq ddls--indexed-layers (make-hash-table :size 1024))
+  (ddls//index-layers-from-directory (list ddls-layers-directory))
+  (spacemacs/dump-vars-to-file '(ddls--indexed-layers) ddls--indexed-layers-filepath))
+
+(defun ddls//add-indexed-layer (layer)
+  "Index a LAYER object."
+  (puthash (oref layer :name) layer ddls--indexed-layers))
+
+(defun ddls/get-indexed-layer (layer-name)
+  "Return a layer object with name LAYER-NAME.
+Return nil if layer object is not found."
+  (when (ht-contains? ddls--indexed-layers layer-name)
+    (ht-get ddls--indexed-layers layer-name)))
+
+(defun ddls//add-indexed-package (package)
+  "Index a PACKAGE object."
+  (puthash (oref package :name) package ddls--indexed-packages))
+
+(defun ddls/index-layers ()
+  "Index all discovered layers in layer directories."
+  ;; load cached index layers first
+  (ddls//load-file ddls--indexed-layers-filepath)
+  ;; then crawl file system for user's private layers
+  (let ((dirs `(;; layers in private folder ~/.emacs.d/private
+                ,ddls-private-directory
+                ;; layers in dotdirectory
+                ;; this path may not exist, so check if it does
+                ,(when dotspacemacs-directory
+                   (let ((dir (expand-file-name (concat dotspacemacs-directory
+                                                        "layers/"))))
+                     (when (file-exists-p dir) (list dir))))
+                ;; additional layer directories provided by the user
+                ,dotspacemacs-configuration-layer-path)))
+    (ddls//index-layers-from-directory dirs)))
+
+(defun ddls//index-layers-from-directory (directories)
+  "Index all discovered layers in DIRECTORIES."
+  (let ((search-paths directories)
+        (discovered '()))
+    ;; filter out directories that don't exist
+    (setq search-paths
+          (ddls/filter-objects
+           search-paths
+           (lambda (x)
+             (when x
+               (let ((exists (file-exists-p x)))
+                 (unless exists
+                   (ddls//warning
+                    "Layer directory \"%s\" not found. Ignoring it." x))
+                 exists)))))
+    ;; depth-first search of subdirectories
+    (while search-paths
+      (let ((current-path (car search-paths)))
+        (setq search-paths (cdr search-paths))
+        (dolist (sub (directory-files current-path t nil 'nosort))
+          ;; ignore ".", ".." and non-directories
+          (unless (or (string-equal ".." (substring sub -2))
+                      (string-equal "." (substring sub -1))
+                      (not (file-directory-p sub)))
+            (let ((type (ddls//directory-type sub)))
+              (cond
+               ((eq 'category type)
+                (let ((category (ddls//get-category-from-path
+                                 sub)))
+                  (spacemacs-buffer/message "-> Discovered category: %S" category)
+                  (push category ddls-categories)
+                  (setq search-paths (cons sub search-paths))))
+               ((eq 'layer type)
+                (let* ((layer-name (intern (file-name-nondirectory sub)))
+                       (indexed-layer (ddls/get-indexed-layer layer-name)))
+                  (if indexed-layer
+                      (ddls//warning
+                       (concat
+                        "Duplicated layer %s detected in directory \"%S\", "
+                        "replacing old directory \"%s\" with new directory.")
+                       layer-name sub (oref indexed-layer :dir))
+                    (spacemacs-buffer/message
+                     "-> Discovered configuration layer: %S" layer-name)
+                    (ddls//add-indexed-layer
+                     (ddls/make-indexed-layer layer-name sub)))))
+               (t
+                ;; layer not found, add it to search path
+                (setq search-paths (cons sub search-paths)))))))))))
+
+(defun ddls/set-used-layers-specs ()
+  "Read used layers specs and set slots of corresponding indexed layers."
+  (dotspacemacs|call-func dotspacemacs/layers "Calling dotfile layers...")
+  (unless ddls-exclude-all-layers
+    (dolist (specs dotspacemacs-configuration-layers)
+      (let* ((name (ddls//get-layer-name-from-specs specs))
+             (layer (ddls/get-indexed-layer name)))
+        (if (null layer)
+            (ddls//warning
+             "Unknown layer '%S' declared in dotfile." name)
+          (ddls-layer/set-specs layer specs)
+          (ddls-layer/mark-as-used layer))))))
+
+(defun ddls/initialize-used-layers ()
+  "Initialize used layers."
+  (dolist (lname ddls--used-layers)
+    (let ((layer (ddls/get-indexed-layer lname)))
+      (ddls-layer/initialize layer)
+      (dolist (pname (oref layer :selected-packages))
+        (ddls-package/mark-as-used (ddls/get-indexed-package pname))))))
+
+
+;; Util Functions
+
+(defun ddls//load-file (file)
+  "Load a file quickly."
+  (let (file-name-handler-alist)
+    (load file nil t)))
+
+(defun ddls//directory-type (path)
+  "Return the type of directory pointed by PATH.
+Possible return values:
+  layer    - the directory is a layer
+  category - the directory is a category
+  nil      - the directory is a regular directory."
+  (when (file-directory-p path)
+    (if (string-match
+         "^+" (file-name-nondirectory
+               (directory-file-name
+                (concat ddls-layers-directory path))))
+        'category
+      (let ((files (directory-files path)))
+        (when (member ddls--main-layer-filename files)
+          'layer)))))
+
+(defun ddls//get-category-from-path (dirpath)
+  "Return a category symbol from the given DIRPATH.
+The directory name must start with `+'.
+Returns nil if the directory is not a category."
+  (when (file-directory-p dirpath)
+    (let ((dirname (file-name-nondirectory
+                    (directory-file-name
+                     (concat ddls-layers-directory
+                             dirpath)))))
+      (when (string-match "^+" dirname)
+        (intern (substring dirname 1))))))
+
+(defun ddls//get-directory-name (filepath)
+  "Return the name of the parent directory for passed FILEPATH"
+  (file-name-nondirectory (directory-file-name (file-name-directory filepath))))
+
+(defun ddls/filter-objects (objects ffunc)
+  "Return a filtered OBJECTS list where each element satisfies FFUNC."
+  (reverse (cl-reduce (lambda (acc x) (if (funcall ffunc x) (push x acc) acc))
+                      objects
+                      :initial-value nil)))
+
+(defun ddls//warning (msg &rest args)
+  "Display MSG as a warning message in buffer `*Messages*'.
+If `ddls--inhibit-warnings' is non nil then this function is a
+no-op."
+  (unless ddls--inhibit-warnings (apply 'spacemacs-buffer/warning msg args)))
