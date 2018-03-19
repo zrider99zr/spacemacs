@@ -166,11 +166,13 @@ NOTE: CTYPE is a type of a currently processed binding(:major/:minor/global...)"
   (:documentation "Based on BINDING type modify STATE using BINDING value."))
 
 (cl-defmethod spacemacs//bind-interpret ((state spacemacs--bind-state)
-                                         (keyword symbol))
-  "Set STATE slot ctype(current type) to the KEYWORD value."
-  (if (not (keywordp keyword))
-      (cl-call-next-method)
-    (setf (spacemacs--bind-state-ctype state) keyword)
+                                         (keyword-or-symbol symbol))
+  "Is KEWORD is a keyword set STATE slot ctype(current type) to its value.
+IF KEYWORD is a non-keyword symbol (without \":\" prefix in the name) wrap
+its value into a list and re-apply the function to it."
+  (if (not (keywordp keyword-or-symbol))
+      (spacemacs//bind-interpret state (list keyword-or-symbol))
+    (setf (spacemacs--bind-state-ctype state) keyword-or-symbol)
     state))
 
 (cl-defmethod spacemacs//bind-interpret ((state spacemacs--bind-state)
@@ -181,9 +183,8 @@ NOTE: CTYPE is a type of a currently processed binding(:major/:minor/global...)"
   state)
 
 (cl-defmethod spacemacs//bind-interpret ((state spacemacs--bind-state)
-                                         (str string))
+                                         (_ string))
   "Append STR to the RSEXP of STATE. Can be used as a doc-string."
-  (cl-callf append (spacemacs--bind-state-rsexp state) (list str))
   state)
 
 (defun spacemacs//bind-form-visitor (form path k-fn p-fn)
@@ -311,7 +312,6 @@ form starts with a corresponding mode symbol.
    (seq-reduce 'spacemacs//bind-interpret
                bindings
                (make-spacemacs--bind-state
-                :ctype (pop bindings)
                 :rsexp `(when (stubmax/package-used-p ',package))))))
 
 
