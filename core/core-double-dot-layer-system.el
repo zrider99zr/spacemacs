@@ -180,13 +180,29 @@ NOTE: CTYPE is a type of a currently processed binding(:major/:minor/global...)"
     (funcall (spacemacs--bind-state-ctype state) state sexp))
   state)
 
-(defun spacemacs//bind-indenter (pos pdat)
-  "Indentation function for `spacemacs|bind' macro."
-  (list
-   (+ (car pdat)
-      (if (or (= 1 (- (caddr pdat) (cadr pdat)))
-              (save-excursion (goto-char pos) (looking-at-p "[[:space:]]*:")))
-          1 2))))
+(cl-defmethod spacemacs//bind-interpret ((state spacemacs--bind-state)
+                                         (str string))
+  "Append STR to the RSEXP of STATE. Can be used as a doc-string."
+  (cl-callf append (spacemacs--bind-state-rsexp state) (list str))
+  state)
+
+(defun spacemacs//bind-form-visitor (form path k-fn p-fn)
+  "Applies K-FN to FORM if it is a key binding form. Otherwise applies P-FN.
+PATH passed to the applied function."
+  (cl-destructuring-bind
+      (key-or-prefix
+       leader-label-or-fn-symbol
+       leader-label-or-next-form)
+      form
+    (let ((full-key-or-prefix (concat path key-or-prefix)))
+      (if (symbolp leader-label-or-fn-symbol)
+          (funcall k-fn
+                   full-key-or-prefix
+                   leader-label-or-fn-symbol
+                   leader-label-or-next-form)
+        (funcall p-fn
+                 full-key-or-prefix
+                 leader-label-or-fn-symbol)))))
 
 (defun spacemacs//bind-form-walker (form path k-fn p-fn)
   "Part of `spacemacs--bind-state' interpreters implementation.
@@ -200,20 +216,7 @@ Both K-FN and P-FN should return binding evaluation forms.
 The forms will be concatenated and substituted by `spacemacs|bind' macro."
   (append
    (when (char-or-string-p (car form))
-     (list (cl-destructuring-bind
-               (key-or-prefix
-                leader-label-or-fn-symbol
-                leader-label-or-next-form)
-               (seq-take form 3)
-             (let ((full-key-or-prefix (concat path key-or-prefix)))
-               (if (symbolp leader-label-or-fn-symbol)
-                   (funcall k-fn
-                            full-key-or-prefix
-                            leader-label-or-fn-symbol
-                            leader-label-or-next-form)
-                 (funcall p-fn
-                          full-key-or-prefix
-                          leader-label-or-fn-symbol))))))
+     (list (spacemacs//bind-form-visitor (seq-take form 3) path k-fn p-fn)))
    (when-let ((unwrapped-car (and (consp (car-safe form))
                                   (car form))))
      (spacemacs//bind-form-walker
@@ -277,6 +280,14 @@ The forms will be concatenated and substituted by `spacemacs|bind' macro."
      (lambda (key-prefix label)
        `(stubmax/declare-prefix-for-minor-mode ',mode ,key-prefix ,label)))))
 
+(defun spacemacs//key-bindings:-indenter (pos pdat)
+  "Indentation function for `spacemacs|bind' macro."
+  (list
+   (+ (car pdat)
+      (if (or (= 1 (- (caddr pdat) (cadr pdat)))
+              (save-excursion (goto-char pos) (looking-at-p "[[:space:]]*:")))
+          1 2))))
+
 (defmacro key-bindings: (package &rest bindings)
   "Key-bindings macro.
 If PACKAGE is used then bind keys and prefixes from BINDINGS.
@@ -295,7 +306,7 @@ Global <BINDING_FORM> format:
 Major and minor <BINDING_FORM> format is the same as a global one but the root
 form starts with a corresponding mode symbol.
 \(fn PROVIDER <<DELIMITER_KEYWORD> <BINDING_FORMS>...>...)"
-  (declare (indent spacemacs//bind-indenter))
+  (declare (indent spacemacs//key-bindings:-indenter))
   (spacemacs--bind-state-rsexp
    (seq-reduce 'spacemacs//bind-interpret
                bindings
