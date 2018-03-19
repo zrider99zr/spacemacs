@@ -3,7 +3,8 @@
 ;;
 ;; Copyright (c) 2012-2018 Sylvain Benner & Contributors
 ;;
-;; Author: Sylvain Benner <sylvain.benner@gmail.com>
+;; Authors: Sylvain Benner <sylvain.benner@gmail.com>
+;;          Eugene Yaremenko <>
 ;; URL: https://github.com/syl20bnr/spacemacs
 ;;
 ;; This file is not part of GNU Emacs.
@@ -12,8 +13,47 @@
 ;;
 ;;; License: GPLv3
 
+(require 'cl)
+(require 'cl-generic)
+(require 'eieio)
+(require 'ht)
+
+(require 'core-dotspacemacs)
+
+(defun spacemacs-buffer/message (msg &rest args)
+  "Display MSG in *Messages* prepended with '(Spacemacs)'.
+The message is displayed only if `init-file-debug' is non nil.
+ARGS: format string arguments."
+  (when init-file-debug
+    (message "(Spacemacs) %s" (apply 'format msg args))))
+
+(defvar spacemacs-buffer--errors nil
+  "List of errors during startup.")
+
+(defun spacemacs-buffer/error (msg &rest args)
+  "Display MSG as an Error message in `*Messages*' buffer.
+ARGS: format string arguments."
+  (let ((msg (apply 'format msg args)))
+    (message "(Spacemacs) Error: %s" msg)
+    (when message-log-max
+      (add-to-list 'spacemacs-buffer--errors msg 'append))))
+
+(defvar spacemacs-buffer--warnings nil
+  "List of warnings during startup.")
+
+(defun spacemacs-buffer/warning (msg &rest args)
+  "Display MSG as a warning message but in buffer `*Messages*'.
+ARGS: format string arguments."
+  (let ((msg (apply 'format msg args)))
+    (message "(Spacemacs) Warning: %s" msg)
+    (when message-log-max
+      (add-to-list 'spacemacs-buffer--warnings msg 'append))))
+
+
 
-;; Interface
+;; Macros
+
+;; Layers
 
 (defmacro layers: (&rest layers)
   "Define used layers."
@@ -22,8 +62,13 @@
   ;;       dotspacemacs-configuration-layers)
   )
 
+;; Packages
+
 (defmacro packages: (&rest packages-specs)
-  "Define packages owned by the layer where this macro is called."
+  "Define packages owned by the layer from where this macro is called.
+
+PACKAGES-SPECS is a list of symbols and/or lists declaring the packages
+and their associated properties. "
   (declare (indent defun))
   (let ((layer-name (ddls//get-directory-name
                      (if load-file-name
@@ -33,29 +78,237 @@
                        default-directory))))
     `(setq ,(ddls//package:-variable-name layer-name) ',packages-specs)))
 
-(defun ddls//package:-variable-name (layer-name)
-  "Return the variable name containing the list of package specs for LAYER-NAME."
-  (intern (format "%S-packages" layer-name)))
+;; Autoload
 
-(defmacro init: ()
-  "Initialize a package."
-  (declare (indent defun)))
+(defmacro autoload: (package &rest plist)
+  "Defines the autloads for a given PACKAGE.
 
-(defmacro pre-init: ()
-  "Initialize a package before calling its `init:'."
-  (declare (indent defun)))
+PACKAGE is a package symbol.
 
-(defmacro post-init: ()
-  "Initialize a package after calling its `init:'."
-  (declare (indent defun)))
+PLIST is a property list supporting the following keywords:
 
-(defmacro key-bindings: ()
-  "Define major-mode or minor mode key-bindings behind the leader keys."
+- `:key-bindings' dispatched to the macro `key-bindings:'
+- TODO
+"
   (declare (indent defun))
   )
 
+;; Load
+
+(defmacro load: (package &rest body)
+  "Load a package by executing the given BODY."
+  (declare (indent defun)))
+
+;; Key bindings
+
+(defun stubmax/package-used-p (pkg)
+  "Is PKG used? Used packager are: [foo everyoneneedsme bar]"
+  (let ((used-packages '(foo everyoneneedsme bar)))
+    (message "Testing if \"%s\" package is used." pkg)
+    (message "Used packages: %s" used-packages)
+    (memq pkg used-packages)))
+
+(defun stubmax/major-mode-prefix ()
+  "Get current prefix for major modes in the leader menu. (it is \"m\")"
+  (message "Asking what major mode prefix is (it is \"m\" btw).")
+  "m")
+
+(defun stubmax/bind-key-global (key-seq fn-symbol label)
+  "Bind global KEY-SEQ to FN-SYMBOL function.
+Display LABEL in leader menu instead of the function name."
+  (message
+   "%S"
+   `(stubmax/bind-key-global ,key-seq ,fn-symbol ,label)))
+
+(defun stubmax/declare-prefix-global (key-prefix label)
+  "Declare global KEY-PREFIX with LABEL in leader menu."
+  (message
+   "%S"
+   `(stubmax/declare-prefix-global ,key-prefix ,label)))
+
+(defun stubmax/bind-key-for-major-mode (mode key-seq fn-symbol label)
+  "Bind major-mode MODE KEY-SEQ to FN-SYMBOL function.
+Display LABEL in leader menu instead of the function name."
+  (message
+   "%S"
+   `(stubmax/bind-key-for-major-mode ,mode ,key-seq ,fn-symbol ,label)))
+
+(defun stubmax/declare-prefix-for-major-mode (mode key-prefix label)
+  "Declare MODE major-mode KEY-PREFIX with LABEL in leader menu"
+  (message
+   "%S"
+   `(stubmax/declare-prefix-for-major-mode ,mode ,key-prefix ,label)))
+
+(defun stubmax/bind-key-for-minor-mode (mode key-seq fn-symbol label)
+  "Bind minor-mode KEY-SEQ to FN-SYMBOL function.
+Display LABEL in leader menu instead of the function name."
+  (message
+   "%S"
+   `(stubmax/bind-key-for-minor-mode ,mode ,key-seq ,fn-symbol ,label)))
+
+(defun stubmax/declare-prefix-for-minor-mode (mode key-prefix label)
+  "Declare MODE minor-mode KEY-PREFIX with LABEL in leader menu"
+  (message
+   "%S"
+   `(stubmax/declare-prefix-for-minor-mode ,mode ,key-prefix ,label)))
+
+;; Key bindings - Implementation details
+
+(cl-defstruct spacemacs--bind-state
+  "State object for `spacemacs|bind' macro implementation.
+CTYPE - current binding type.
+RSEXP - accumulator with the macro output.
+This structure has one interpreter method for each supported CTYPE.
+NOTE: CTYPE is a type of a currently processed binding(:major/:minor/global...)"
+  ctype rsexp)
+
+(cl-defgeneric spacemacs//bind-interpret (state binding)
+  (:documentation "Based on BINDING type modify STATE using BINDING value."))
+
+(cl-defmethod spacemacs//bind-interpret ((state spacemacs--bind-state)
+                                         (keyword symbol))
+  "Set STATE slot ctype(current type) to the KEYWORD value."
+  (if (not (keywordp keyword))
+      (cl-call-next-method)
+    (setf (spacemacs--bind-state-ctype state) keyword)
+    state))
+
+(cl-defmethod spacemacs//bind-interpret ((state spacemacs--bind-state)
+                                         (sexp list))
+  "Apply STATE method from ctype slot to SEXP and append output to rsexp slot."
+  (cl-callf append (spacemacs--bind-state-rsexp state)
+    (funcall (spacemacs--bind-state-ctype state) state sexp))
+  state)
+
+(defun spacemacs//bind-indenter (pos pdat)
+  "Indentation function for `spacemacs|bind' macro."
+  (list
+   (+ (car pdat)
+      (if (or (= 1 (- (caddr pdat) (cadr pdat)))
+              (save-excursion (goto-char pos) (looking-at-p "[[:space:]]*:")))
+          1 2))))
+
+(defun spacemacs//bind-form-walker (form path k-fn p-fn)
+  "Part of `spacemacs--bind-state' interpreters implementation.
+FORM is a node of a binding tree without mode (car of the root form).
+PATH is a key sequence path (concatenation of cars) to the current tree node.
+K-FN called for each key binding node with 3 arguments: full_key_sequence,
+function_symbol and label_for_leader_menu.
+P-FN called for each prefix binding node with 2 arguments:
+full_key_prefix_sequence and label_for_leader_menu.
+Both K-FN and P-FN should return binding evaluation forms.
+The forms will be concatenated and substituted by `spacemacs|bind' macro."
+  (append
+   (when (char-or-string-p (car form))
+     (list (cl-destructuring-bind
+               (key-or-prefix
+                leader-label-or-fn-symbol
+                leader-label-or-next-form)
+               (seq-take form 3)
+             (let ((full-key-or-prefix (concat path key-or-prefix)))
+               (if (symbolp leader-label-or-fn-symbol)
+                   (funcall k-fn
+                            full-key-or-prefix
+                            leader-label-or-fn-symbol
+                            leader-label-or-next-form)
+                 (funcall p-fn
+                          full-key-or-prefix
+                          leader-label-or-fn-symbol))))))
+   (when-let ((unwrapped-car (and (consp (car-safe form))
+                                  (car form))))
+     (spacemacs//bind-form-walker
+      unwrapped-car
+      path
+      k-fn
+      p-fn))
+   (when-let ((next-child (and (consp (caddr form))
+                               (caddr form))))
+     (spacemacs//bind-form-walker
+      next-child
+      (concat path (car form))
+      k-fn
+      p-fn))
+   (when-let ((kb-form-next-sibling (and (consp (cadr form))
+                                         (cadr form))))
+     (spacemacs//bind-form-walker
+      kb-form-next-sibling
+      path
+      k-fn
+      p-fn))
+   (when-let ((p-form-next-sibling (and (consp (cadddr form))
+                                        (cadddr form))))
+     (spacemacs//bind-form-walker
+      p-form-next-sibling
+      (concat path (car form))
+      k-fn
+      p-fn))))
+
+;; Key bindings - keywords handlers
+
+(cl-defmethod :global ((_ spacemacs--bind-state) form)
+  "Interpreter for global binding forms."
+  (spacemacs//bind-form-walker
+   form
+   ""
+   (lambda (key-seq fn-symbol label)
+     `(stubmax/bind-key-global ,key-seq ',fn-symbol ,label))
+   (lambda (key-prefix label)
+     `(stubmax/declare-prefix-global ,key-prefix ,label))))
+
+(cl-defmethod :major ((_ spacemacs--bind-state) form)
+  "Interpreter for major mode binding forms."
+  (let ((mode (pop form)))
+    (spacemacs//bind-form-walker
+     form
+     (stubmax/major-mode-prefix)
+     (lambda (key-seq fn-symbol label)
+       `(stubmax/bind-key-for-major-mode ',mode ,key-seq ',fn-symbol ,label))
+     (lambda (key-prefix label)
+       `(stubmax/declare-prefix-for-major-mode ',mode ,key-prefix ,label)))))
+
+(cl-defmethod :minor ((_ spacemacs--bind-state) form)
+  "Interpreter for minor mode binding forms."
+  (let ((mode (pop form)))
+    (spacemacs//bind-form-walker
+     form
+     ""
+     (lambda (key-seq fn-symbol label)
+       `(stubmax/bind-key-for-minor-mode ',mode ,key-seq ',fn-symbol ,label))
+     (lambda (key-prefix label)
+       `(stubmax/declare-prefix-for-minor-mode ',mode ,key-prefix ,label)))))
+
+(defmacro key-bindings: (package &rest bindings)
+  "Key-bindings macro.
+If PACKAGE is used then bind keys and prefixes from BINDINGS.
+
+BINDINGS format:
+ <DELIMITER_KEYWORD>
+  <BINDING_FORM>
+  ...
+  <BINDING_FORM>
+ <DELIMITER_KEYWORD>
+  ...
+DELIMITER_KEYWORD - specifies a type of fallowing <BINDING_FORM> (or forms).
+Currently supported types: (:major :minor :global).
+Global <BINDING_FORM> format:
+  TODO: Describe the format.
+Major and minor <BINDING_FORM> format is the same as a global one but the root
+form starts with a corresponding mode symbol.
+\(fn PROVIDER <<DELIMITER_KEYWORD> <BINDING_FORMS>...>...)"
+  (declare (indent spacemacs//bind-indenter))
+  (spacemacs--bind-state-rsexp
+   (seq-reduce 'spacemacs//bind-interpret
+               bindings
+               (make-spacemacs--bind-state
+                :ctype (pop bindings)
+                :rsexp `(when (stubmax/package-used-p ',package))))))
+
 
 ;; Variables
+
+(defun ddls//package:-variable-name (layer-name)
+  "Return the variable name containing the list of package specs for LAYER-NAME."
+  (intern (format "%s-packages" layer-name)))
 
 (defconst ddls-layers-directory
   (expand-file-name (concat spacemacs-start-directory "layers/"))
@@ -85,13 +338,15 @@ directory with a name starting with `+'.")
 
 (defvar ddls--inhibit-warnings nil
   "If non-nil then warning messages emitted by the layer system are ignored.")
+
+(defconst ddls-spacemacs-bigfile
+  (expand-file-name (concat spacemacs-cache-directory "spacemacs.bfc.el"))
+  "Spacemacs big f*****g configuration file.")
+
 
 ;; Classes
 
 ;; class: layer
-
-(defconst ddls--indexed-layers-filepath (concat ddls-layers-directory "index.el")
-  "File containing the cached index of all layers shipped with Spacemacs.")
 
 (defvar ddls--indexed-layers (make-hash-table :size 1024)
   "Hash map to index `ddls-layer' objects by their names.")
@@ -99,8 +354,8 @@ directory with a name starting with `+'.")
 (defvar ddls--used-layers '()
   "A non-sorted list of used layer name symbols.")
 
-(defvar ddls--main-layer-filename "main.el"
-  "File name of the mandatory layer file.")
+(defvar ddls--packages-layer-file "packages2.el"
+  "File name of layer file listing packages.")
 
 (defclass ddls-layer ()
   ((name :initarg :name
@@ -154,20 +409,35 @@ directory with a name starting with `+'.")
   "A configuration layer.")
 
 (defmethod ddls-layer/initialize ((layer ddls-layer))
-  "Initialize the layer which means to load its main file and set the packages."
-  ;; layer objects have a main file so we don't have to check for the
-  ;; main file existence
-  (ddls//load-file (concat (oref layer :dir) ddls--main-layer-filename))
+  "Initialize the layer."
+  ;; packages
+  ;; packages file is mandatory so we don't have to check for their existence.
+  (load (concat (oref layer :dir) ddls--packages-layer-file) nil t)
   (let* ((lname (oref layer :name))
-         (pspecs (symbol-value (intern (format "%S-packages" lname)))))
-    ;; create packages form the layer and index them
-    (oset layer :selected-packages nil)
+         (pspecs (symbol-value (ddls//package:-variable-name lname))))
+    (oset layer :packages pspecs)
     (dolist (specs pspecs)
       (let* ((pname (ddls//get-package-name-from-specs specs))
              (package (ddls/make-indexed-package-from-specs
                        specs (ddls/get-indexed-package pname))))
         (ddls//add-indexed-package package)
-        (ddls-layer/select-package layer package)))))
+        )))
+  ;; autoloads
+  ;; TODO
+  )
+
+(defmethod ddls-layer/load ((layer ddls-layer))
+  "Load layer (only used layers should be loaded)."
+  ;; cannot selected the packages now, will be done when looping on the
+  ;; used layers -- keeping this line here commented for now
+  (dolist (specs (oref layer :packages))
+    (let* ((pname (ddls//get-package-name-from-specs specs))
+           (package (ddls/make-indexed-package-from-specs
+                     specs (ddls/get-indexed-package pname))))
+      (ddls-layer/select-package layer package))))
+
+(defmethod ddls-layer/load-deferred ((layer ddls-layer))
+  "Load deferred configuration of the layer.")
 
 (defmethod ddls-layer/select-package ((layer ddls-layer) package)
   "Select package by applying `:select-query' slot.
@@ -552,10 +822,28 @@ Return nil if package object is not found."
 
 (defun ddls/test ()
   (interactive)
-  ;; tests
   (setq gc-cons-threshold 402653184 gc-cons-percentage 0.6)
   (let ((start-time (current-time))
-        (ddls--inhibit-warnings t))
+        (ddls--inhibit-warnings t)
+        (dotspacemacs-configuration-layers
+         '(
+           python
+           spacemacs-defaults
+           spacemacs-completion
+           spacemacs-layouts
+           spacemacs-editing
+           spacemacs-editing-visual
+           spacemacs-evil
+           spacemacs-language
+           spacemacs-misc
+           spacemacs-modeline
+           spacemacs-navigation
+           spacemacs-org
+           spacemacs-project
+           spacemacs-purpose
+           spacemacs-visual
+           neotree
+           )))
     ;; reinit data
     (setq ddls--indexed-layers (make-hash-table :size 1024))
     (setq ddls--used-layers nil)
@@ -563,24 +851,45 @@ Return nil if package object is not found."
     (setq ddls--used-packages nil)
     ;; execute test
     (setq ptime (current-time))
-    (ddls/index-layers)
-    (message ">>>>>>>> layer indexing time: %.3fs" (float-time (time-subtract (current-time) ptime)))
+    (ddls/load-spacemacs-bfc)
+    (message ">>>>>>>> load BFC time: %.3fs" (float-time (time-subtract (current-time) ptime)))
     (setq ptime (current-time))
     (ddls/set-used-layers-specs)
     (message ">>>>>>>> layer specs time: %.3fs" (float-time (time-subtract (current-time) ptime)))
     (setq ptime (current-time))
-    (dotimes (i 5) (ddls/initialize-used-layers))
-    (message ">>>>>>>> layer initialization time: %.3fs" (float-time (time-subtract (current-time) ptime)))
+    (dotimes (i 5) (ddls/load-used-layers))
+    (message ">>>>>>>> layer loading time: %.3fs" (float-time (time-subtract (current-time) ptime)))
     (message ">>>>>>>> total elapsed time: %.3fs"
              (float-time (time-subtract (current-time) start-time))))
   (setq gc-cons-threshold (car dotspacemacs-gc-cons) gc-cons-percentage (cadr dotspacemacs-gc-cons)))
 
-(defun ddls/create-spacemacs-layers-index-file ()
-  "Scan `ddls-layers-directory' to index layers then cache the index in a file."
+;; (let (timer-idle-list timer-list file-name-handler-alist emacs-lisp-mode-hook auto-mode-alist)
+;;   (profiler-start 'cpu)
+;;   (ddls/test)
+;;   (profiler-report)
+;;   (profiler-stop))
+;;(dotimes (i 100) (ddls/test))
+
+;; BFC
+
+(defun ddls/generate-spacemacs-bfc ()
+  "Generate the Spacemacs big configuration file."
   (interactive)
+  ;; layers
   (setq ddls--indexed-layers (make-hash-table :size 1024))
   (ddls//index-layers-from-directory (list ddls-layers-directory))
-  (spacemacs/dump-vars-to-file '(ddls--indexed-layers) ddls--indexed-layers-filepath))
+  ;; packages
+  (dolist (lname (ht-keys ddls--indexed-layers))
+    (let ((layer (ddls/get-indexed-layer lname)))
+      (ddls-layer/initialize layer)))
+  ;; write big configuration file
+  (spacemacs/dump-vars-to-file '(ddls--indexed-layers
+                          ddls--indexed-packages)
+                        ddls-spacemacs-bigfile))
+
+(defun ddls/load-spacemacs-bfc ()
+  "Load the Spacemacs big configuration file."
+  (load ddls-spacemacs-bigfile))
 
 (defun ddls//add-indexed-layer (layer)
   "Index a LAYER object."
@@ -592,14 +901,11 @@ Return nil if layer object is not found."
   (when (ht-contains? ddls--indexed-layers layer-name)
     (ht-get ddls--indexed-layers layer-name)))
 
-(defun ddls//add-indexed-package (package)
-  "Index a PACKAGE object."
-  (puthash (oref package :name) package ddls--indexed-packages))
+;; Layers
 
 (defun ddls/index-layers ()
   "Index all discovered layers in layer directories."
   ;; load cached index layers first
-  (ddls//load-file ddls--indexed-layers-filepath)
   ;; then crawl file system for user's private layers
   (let ((dirs `(;; layers in private folder ~/.emacs.d/private
                 ,ddls-private-directory
@@ -664,32 +970,33 @@ Return nil if layer object is not found."
 
 (defun ddls/set-used-layers-specs ()
   "Read used layers specs and set slots of corresponding indexed layers."
-  (dotspacemacs|call-func dotspacemacs/layers "Calling dotfile layers...")
-  (unless ddls-exclude-all-layers
-    (dolist (specs dotspacemacs-configuration-layers)
-      (let* ((name (ddls//get-layer-name-from-specs specs))
-             (layer (ddls/get-indexed-layer name)))
-        (if (null layer)
-            (ddls//warning
-             "Unknown layer '%S' declared in dotfile." name)
-          (ddls-layer/set-specs layer specs)
-          (ddls-layer/mark-as-used layer))))))
+  ;; (dotspacemacs|call-func dotspacemacs/layers "Calling dotfile layers...")
+  (let ()
+    (unless ddls-exclude-all-layers
+      (dolist (specs dotspacemacs-configuration-layers)
+        (let* ((name (ddls//get-layer-name-from-specs specs))
+               (layer (ddls/get-indexed-layer name)))
+          (if (null layer)
+              (ddls//warning
+               "Unknown layer '%S' declared in dotfile." name)
+            (ddls-layer/set-specs layer specs)
+            (ddls-layer/mark-as-used layer)))))))
 
-(defun ddls/initialize-used-layers ()
-  "Initialize used layers."
+(defun ddls/load-used-layers ()
+  "Load the used layers."
   (dolist (lname ddls--used-layers)
     (let ((layer (ddls/get-indexed-layer lname)))
-      (ddls-layer/initialize layer)
+      (ddls-layer/load layer)
       (dolist (pname (oref layer :selected-packages))
         (ddls-package/mark-as-used (ddls/get-indexed-package pname))))))
 
+(defun ddls//add-indexed-package (package)
+  "Index a PACKAGE object."
+  (puthash (oref package :name) package ddls--indexed-packages))
+
+
 
 ;; Util Functions
-
-(defun ddls//load-file (file)
-  "Load a file quickly."
-  (let (file-name-handler-alist)
-    (load file nil t)))
 
 (defun ddls//directory-type (path)
   "Return the type of directory pointed by PATH.
@@ -704,7 +1011,7 @@ Possible return values:
                 (concat ddls-layers-directory path))))
         'category
       (let ((files (directory-files path)))
-        (when (member ddls--main-layer-filename files)
+        (when (member ddls--packages-layer-file files)
           'layer)))))
 
 (defun ddls//get-category-from-path (dirpath)
@@ -734,3 +1041,5 @@ Returns nil if the directory is not a category."
 If `ddls--inhibit-warnings' is non nil then this function is a
 no-op."
   (unless ddls--inhibit-warnings (apply 'spacemacs-buffer/warning msg args)))
+
+(provide 'core-double-dot-layer-system)

@@ -26,6 +26,12 @@
            emacs-version spacemacs-emacs-min-version)
   ;; Disable file-name-handlers for a speed boost during init
   (let ((file-name-handler-alist nil))
+
+
+    ;; (require 'core-double-dot-layer-system)
+    ;; (ddls/test)
+
+
     (require 'core-spacemacs)
     (configuration-layer/load-lock-file)
     (spacemacs/init)
@@ -33,6 +39,8 @@
     (configuration-layer/load)
     (spacemacs-buffer/display-startup-note)
     (spacemacs/setup-startup-hook)
-    (when dotspacemacs-enable-server
-      (require 'server)
-      (unless (server-running-p) (server-start)))))
+    ;; (when dotspacemacs-enable-server
+    ;;   (require 'server)
+    ;;   (unless (server-start)))
+    ))
+
