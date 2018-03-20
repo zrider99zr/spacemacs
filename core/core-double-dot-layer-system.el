@@ -286,7 +286,7 @@ The forms will be concatenated and substituted by `key-bindings:' macro."
        `(stubmax/declare-prefix-for-minor-mode ',mode ,key-prefix ,label)))))
 
 (defun spacemacs//key-bindings:-indenter (pos pdat)
-  "Indentation function for `spacemacs|bind' macro."
+  "Indentation function for `key-bindings:' macro."
   (list
    (+ (car pdat)
       (if (or (= 1 (- (caddr pdat) (cadr pdat)))
