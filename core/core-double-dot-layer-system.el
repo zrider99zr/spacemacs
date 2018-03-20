@@ -155,7 +155,7 @@ Display LABEL in leader menu instead of the function name."
 ;; Key bindings - Implementation details
 
 (cl-defstruct spacemacs--bind-state
-  "State object for `spacemacs|bind' macro implementation.
+  "State object for `key-bindings:' macro implementation.
 CTYPE - current binding type.
 RSEXP - accumulator with the macro output.
 This structure has one interpreter method for each supported CTYPE.
@@ -189,12 +189,16 @@ its value into a list and re-apply the function to it."
 
 (defun spacemacs//bind-form-visitor (form path k-fn p-fn)
   "Applies K-FN to FORM if it is a key binding form. Otherwise applies P-FN.
-PATH passed to the applied function."
+PATH passed to the applied function.
+NOTE: This function strips all newline characters from string elements of FORM."
   (cl-destructuring-bind
       (key-or-prefix
        leader-label-or-fn-symbol
        leader-label-or-next-form)
-      form
+      (mapcar (lambda (el)
+                (when (stringp el)
+                  (replace-regexp-in-string "\n" " " el)))
+              form)
     (let ((full-key-or-prefix (concat path key-or-prefix)))
       (if (symbolp leader-label-or-fn-symbol)
           (funcall k-fn
@@ -214,7 +218,7 @@ function_symbol and label_for_leader_menu.
 P-FN called for each prefix binding node with 2 arguments:
 full_key_prefix_sequence and label_for_leader_menu.
 Both K-FN and P-FN should return binding evaluation forms.
-The forms will be concatenated and substituted by `spacemacs|bind' macro."
+The forms will be concatenated and substituted by `key-bindings:' macro."
   (append
    (when (char-or-string-p (car form))
      (list (spacemacs//bind-form-visitor (seq-take form 3) path k-fn p-fn)))
