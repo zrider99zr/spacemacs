@@ -101,56 +101,14 @@ PLIST is a property list supporting the following keywords:
 
 ;; Key bindings
 
-(defun stubmax/package-used-p (pkg)
-  "Is PKG used? Used packager are: [foo everyoneneedsme bar]"
-  (let ((used-packages '(foo everyoneneedsme bar)))
-    (message "Testing if \"%s\" package is used." pkg)
-    (message "Used packages: %s" used-packages)
-    (memq pkg used-packages)))
-
-(defun stubmax/major-mode-prefix ()
+;; TODO: Make this configurable.
+(define-inline spacemacs/major-mode-prefix ()
   "Get current prefix for major modes in the leader menu. (it is \"m\")"
-  (message "Asking what major mode prefix is (it is \"m\" btw).")
   "m")
 
-(defun stubmax/bind-key-global (key-seq fn-symbol label)
-  "Bind global KEY-SEQ to FN-SYMBOL function.
-Display LABEL in leader menu instead of the function name."
-  (message
-   "%S"
-   `(stubmax/bind-key-global ,key-seq ,fn-symbol ,label)))
-
-(defun stubmax/declare-prefix-global (key-prefix label)
-  "Declare global KEY-PREFIX with LABEL in leader menu."
-  (message
-   "%S"
-   `(stubmax/declare-prefix-global ,key-prefix ,label)))
-
-(defun stubmax/bind-key-for-major-mode (mode key-seq fn-symbol label)
-  "Bind major-mode MODE KEY-SEQ to FN-SYMBOL function.
-Display LABEL in leader menu instead of the function name."
-  (message
-   "%S"
-   `(stubmax/bind-key-for-major-mode ,mode ,key-seq ,fn-symbol ,label)))
-
-(defun stubmax/declare-prefix-for-major-mode (mode key-prefix label)
-  "Declare MODE major-mode KEY-PREFIX with LABEL in leader menu"
-  (message
-   "%S"
-   `(stubmax/declare-prefix-for-major-mode ,mode ,key-prefix ,label)))
-
-(defun stubmax/bind-key-for-minor-mode (mode key-seq fn-symbol label)
-  "Bind minor-mode KEY-SEQ to FN-SYMBOL function.
-Display LABEL in leader menu instead of the function name."
-  (message
-   "%S"
-   `(stubmax/bind-key-for-minor-mode ,mode ,key-seq ,fn-symbol ,label)))
-
-(defun stubmax/declare-prefix-for-minor-mode (mode key-prefix label)
-  "Declare MODE minor-mode KEY-PREFIX with LABEL in leader menu"
-  (message
-   "%S"
-   `(stubmax/declare-prefix-for-minor-mode ,mode ,key-prefix ,label)))
+(define-inline spacemacs/leader-key ()
+  "Returns `dotspacemacs-leader-key'"
+  dotspacemacs-leader-key)
 
 ;; Key bindings - Implementation details
 
@@ -196,10 +154,11 @@ NOTE: This function strips all newline characters from string elements of FORM."
        leader-label-or-fn-symbol
        leader-label-or-next-form)
       (mapcar (lambda (el)
-                (when (stringp el)
-                  (replace-regexp-in-string "\n" " " el)))
+                (if (stringp el)
+                    (replace-regexp-in-string "\n" " " el)
+                  el))
               form)
-    (let ((full-key-or-prefix (concat path key-or-prefix)))
+    (let ((full-key-or-prefix (concat path " " key-or-prefix)))
       (if (symbolp leader-label-or-fn-symbol)
           (funcall k-fn
                    full-key-or-prefix
@@ -233,7 +192,7 @@ The forms will be concatenated and substituted by `key-bindings:' macro."
                                (caddr form))))
      (spacemacs//bind-form-walker
       next-child
-      (concat path (car form))
+      (concat path " " (car form))
       k-fn
       p-fn))
    (when-let ((kb-form-next-sibling (and (consp (cadr form))
@@ -247,11 +206,14 @@ The forms will be concatenated and substituted by `key-bindings:' macro."
                                         (cadddr form))))
      (spacemacs//bind-form-walker
       p-form-next-sibling
-      (concat path (car form))
+      (concat path " " (car form))
       k-fn
       p-fn))))
 
 ;; Key bindings - keywords handlers
+
+(defalias 'ddls//nosp (apply-partially 'replace-regexp-in-string " +" "")
+  "Remove white-spaces from string.")
 
 (cl-defmethod :global ((_ spacemacs--bind-state) form)
   "Interpreter for global binding forms."
@@ -259,20 +221,39 @@ The forms will be concatenated and substituted by `key-bindings:' macro."
    form
    ""
    (lambda (key-seq fn-symbol label)
-     `(stubmax/bind-key-global ,key-seq ',fn-symbol ,label))
+     `(progn
+        (which-key-add-key-based-replacements
+          (concat (spacemacs/leader-key) " " ,key-seq)
+          ,label)
+        (spacemacs/set-leader-keys ,(ddls//nosp key-seq) ',fn-symbol)))
    (lambda (key-prefix label)
-     `(stubmax/declare-prefix-global ,key-prefix ,label))))
+     `(spacemacs/declare-prefix ,(ddls//nosp key-prefix) ,label))))
 
 (cl-defmethod :major ((_ spacemacs--bind-state) form)
   "Interpreter for major mode binding forms."
   (let ((mode (pop form)))
     (spacemacs//bind-form-walker
      form
-     (stubmax/major-mode-prefix)
+     ""
      (lambda (key-seq fn-symbol label)
-       `(stubmax/bind-key-for-major-mode ',mode ,key-seq ',fn-symbol ,label))
+       `(progn
+          (which-key-add-major-mode-key-based-replacements
+            ',mode
+            (string-join
+             (list (spacemacs/leader-key)
+                   (spacemacs/major-mode-prefix)
+                   ,key-seq)
+             " ")
+            ,label)
+          (spacemacs/set-leader-keys-for-major-mode
+            ',mode
+            (concat (spacemacs/major-mode-prefix) ,(ddls//nosp key-seq))
+            ',fn-symbol)))
      (lambda (key-prefix label)
-       `(stubmax/declare-prefix-for-major-mode ',mode ,key-prefix ,label)))))
+       `(spacemacs/declare-prefix-for-mode
+          ',mode
+          (concat (spacemacs/major-mode-prefix) ,(ddls//nosp key-prefix))
+          ,label)))))
 
 (cl-defmethod :minor ((_ spacemacs--bind-state) form)
   "Interpreter for minor mode binding forms."
@@ -281,9 +262,20 @@ The forms will be concatenated and substituted by `key-bindings:' macro."
      form
      ""
      (lambda (key-seq fn-symbol label)
-       `(stubmax/bind-key-for-minor-mode ',mode ,key-seq ',fn-symbol ,label))
+       `(progn
+          ;;FIXME: We should disable replacements when the mode is disabled."
+          (which-key-add-key-based-replacements
+            (concat (spacemacs/leader-key) " " ,key-seq)
+            ,label)
+          (spacemacs/set-leader-keys-for-minor-mode
+            ',mode
+            ,(ddls//nosp key-seq)
+            ',fn-symbol)))
      (lambda (key-prefix label)
-       `(stubmax/declare-prefix-for-minor-mode ',mode ,key-prefix ,label)))))
+       `(spacemacs/declare-prefix-for-mode
+          ',mode
+          ,(ddls//nosp key-prefix)
+          ,label)))))
 
 (defun spacemacs//key-bindings:-indenter (pos pdat)
   "Indentation function for `key-bindings:' macro."
@@ -295,7 +287,7 @@ The forms will be concatenated and substituted by `key-bindings:' macro."
 
 (defmacro key-bindings: (package &rest bindings)
   "Key-bindings macro.
-If PACKAGE is used then bind keys and prefixes from BINDINGS.
+If PACKAGE is used(or nil) then bind keys and prefixes from BINDINGS.
 
 BINDINGS format:
  <DELIMITER_KEYWORD>
@@ -316,7 +308,9 @@ form starts with a corresponding mode symbol.
    (seq-reduce 'spacemacs//bind-interpret
                bindings
                (make-spacemacs--bind-state
-                :rsexp `(when (stubmax/package-used-p ',package))))))
+                :rsexp (if (null package)
+                           `(progn)
+                         `(when (ddls/package-used-p ',package)))))))
 
 
 ;; Variables
