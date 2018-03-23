@@ -103,7 +103,7 @@ PLIST is a property list supporting the following keywords:
 
 ;; TODO: Make this configurable.
 (define-inline spacemacs/major-mode-prefix ()
-  "Get current prefix for major modes in the leader menu. (it is \"m\")"
+  "Get current prefix for major modes."
   "m")
 
 (define-inline spacemacs/leader-key ()
@@ -117,7 +117,7 @@ PLIST is a property list supporting the following keywords:
 CTYPE - current binding type.
 RSEXP - accumulator with the macro output.
 This structure has one interpreter method for each supported CTYPE.
-NOTE: CTYPE is a type of a currently processed binding(:major/:minor/global...)"
+CTYPE is a type of a currently processed binding."
   ctype rsexp)
 
 (cl-defgeneric spacemacs//bind-interpret (state binding)
@@ -149,7 +149,7 @@ its value into a list and re-apply the function to it."
   "Applies K-FN to FORM if it is a key binding form. Otherwise applies P-FN.
 PATH passed to the applied function.
 NOTE: This function strips all newline characters from string elements of FORM
-and drops tails of function labels delimited by \"|\" character."
+and trim tails of function labels delimited by \"|\" character."
   (cl-destructuring-bind
       (key-or-prefix
        leader-label-or-fn-symbol
@@ -281,6 +281,10 @@ The forms will be concatenated and substituted by `key-bindings:' macro."
           ,(ddls//nosp key-prefix)
           ,label)))))
 
+(cl-defmethod :evilify ((_ spacemacs--bind-state) form)
+  "Interpreter for evilification."
+  (list `(evilified-state-evilify-map ,@form)))
+
 (defun spacemacs//key-bindings:-indenter (pos pdat)
   "Indentation function for `key-bindings:' macro."
   (list
@@ -301,7 +305,7 @@ BINDINGS format:
  <DELIMITER_KEYWORD>
   ...
 DELIMITER_KEYWORD - specifies a type of fallowing <BINDING_FORM> (or forms).
-Currently supported types: (:major :minor :global).
+Currently supported types: (:major :minor :global :evilify).
 Global <BINDING_FORM> format:
   TODO: Describe the format.
 Major and minor <BINDING_FORM> format is the same as a global one but the root
