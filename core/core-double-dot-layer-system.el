@@ -148,15 +148,18 @@ its value into a list and re-apply the function to it."
 (defun spacemacs//bind-form-visitor (form path k-fn p-fn)
   "Applies K-FN to FORM if it is a key binding form. Otherwise applies P-FN.
 PATH passed to the applied function.
-NOTE: This function strips all newline characters from string elements of FORM
-and trim tails of function labels delimited by \"|\" character."
+NOTE: This function strips all newline characters, replaces successive spaces
+with a singular in string elements of FORM and trims tails of function labels
+delimited by \"|\" character."
   (cl-destructuring-bind
       (key-or-prefix
        leader-label-or-fn-symbol
        leader-label-or-next-form)
       (mapcar (lambda (el)
                 (if (stringp el)
-                    (replace-regexp-in-string "\n" " " el)
+                    (thread-last el
+                      (replace-regexp-in-string "\n" " ")
+                      (replace-regexp-in-string "[[:space:]]+" " "))
                   el))
               form)
     (let ((full-key-or-prefix (concat path " " key-or-prefix)))
