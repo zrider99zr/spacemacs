@@ -157,9 +157,7 @@ delimited by \"|\" character."
        leader-label-or-next-form)
       (mapcar (lambda (el)
                 (if (stringp el)
-                    (thread-last el
-                      (replace-regexp-in-string "\n" " ")
-                      (replace-regexp-in-string "[[:space:]]+" " "))
+                    (replace-regexp-in-string "[\n[:space:]]+" " " el)
                   el))
               form)
     (let ((full-key-or-prefix (concat path " " key-or-prefix)))
