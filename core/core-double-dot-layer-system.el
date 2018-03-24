@@ -177,18 +177,25 @@ delimited by \"|\" character."
                     leader-label-or-fn-symbol)))))))
 
 (defun spacemacs//bind-form-walker-rec (path k-fn p-fn form)
-  "Recursive body of `spacemacs//bind-form-walker'"
+  "Recursive body of `spacemacs//bind-form-walker'."
   (append
    (spacemacs//bind-form-visitor form path k-fn p-fn)
-   (let ((bindings
-          ;; Strip prefix key and label if we are at prefix node.
-          (if (stringp (cadr form))
-              (cddr form)
-            form)))
+   (let* ((is-prefix-form (stringp (cadr form)))
+          (cur-path (if is-prefix-form
+                        (concat path (car form))
+                      path))
+          ;; Strip key and label from prefix forms.
+          (bindings (if is-prefix-form
+                        (cddr form)
+                      form)))
      ;; Is it a list of bind forms?
      (when (consp (car-safe bindings))
        (seq-mapcat
-        (apply-partially 'spacemacs//bind-form-walker-rec path k-fn p-fn)
+        (apply-partially
+         'spacemacs//bind-form-walker-rec
+         cur-path
+         k-fn
+         p-fn)
         bindings)))))
 
 (defun spacemacs//bind-form-walker (b-forms k-fn p-fn)
