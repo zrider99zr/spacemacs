@@ -375,6 +375,9 @@ directory with a name starting with `+'.")
 (defvar ddls--packages-layer-file "packages2.el"
   "File name of layer file listing packages.")
 
+(defvar ddls--load-now-layer-file "now.el"
+  "File name of layer file for configuration to load during startup.")
+
 (defclass ddls-layer ()
   ((name :initarg :name
          :type symbol
@@ -446,19 +449,19 @@ directory with a name starting with `+'.")
 
 (defmethod ddls-layer/load ((layer ddls-layer))
   "Load layer (only used layers should be loaded)."
-  ;; cannot selected the packages now, will be done when looping on the
-  ;; used layers -- keeping this line here commented for now
   (dolist (specs (oref layer :packages))
     (let* ((pname (ddls//get-package-name-from-specs specs))
            (package (ddls/make-indexed-package-from-specs
                      specs (ddls/get-indexed-package pname))))
-      (ddls-layer/select-package layer package))))
+      (ddls-layer/select-package layer package)))
+  ;; configure packages in `ddls--load-now-layer-file' at startup
+  (load (concat (oref layer :dir) ddls--load-now-layer-file) nil t))
 
 (defmethod ddls-layer/load-deferred ((layer ddls-layer))
   "Load deferred configuration of the layer.")
 
 (defmethod ddls-layer/select-package ((layer ddls-layer) package)
-  "Select package by applying `:select-query' slot.
+  "Select package by applying `:select-query', return non-nil if it's selected.
 If the package is selected then it is added to `:selected-packages' list."
   (let* ((query (oref layer :select-query))
          (pname (oref package :name)))
@@ -471,7 +474,8 @@ If the package is selected then it is added to `:selected-packages' list."
            ;; (my-layer :packages (not package1 package2 ...))
            (and (eq 'not (car query))
                 (not (memq pname query))))
-      (push pname (oref layer :selected-packages)))))
+      (push pname (oref layer :selected-packages))
+      t)))
 
 (defmethod ddls-layer/owned-packages ((layer ddls-layer) &optional props)
   "Return the list of owned packages-specs by LAYER.
@@ -875,7 +879,7 @@ Return nil if package object is not found."
     (ddls/set-used-layers-specs)
     (message ">>>>>>>> layer specs time: %.3fs" (float-time (time-subtract (current-time) ptime)))
     (setq ptime (current-time))
-    (dotimes (i 5) (ddls/load-used-layers))
+    (dotimes (i 1) (ddls/load-used-layers))
     (message ">>>>>>>> layer loading time: %.3fs" (float-time (time-subtract (current-time) ptime)))
     (message ">>>>>>>> total elapsed time: %.3fs"
              (float-time (time-subtract (current-time) start-time))))
