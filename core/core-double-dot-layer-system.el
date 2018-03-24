@@ -120,27 +120,27 @@ This structure has one interpreter method for each supported CTYPE.
 CTYPE is a type of a currently processed binding."
   ctype rsexp)
 
-(cl-defgeneric spacemacs//bind-interpret (state binding)
+(cl-defgeneric spacemacs//bind-dispatch (state binding)
   (:documentation "Based on BINDING type modify STATE using BINDING value."))
 
-(cl-defmethod spacemacs//bind-interpret ((state spacemacs--bind-state)
+(cl-defmethod spacemacs//bind-dispatch ((state spacemacs--bind-state)
                                          (keyword-or-symbol symbol))
   "Is KEWORD is a keyword set STATE slot ctype(current type) to its value.
 IF KEYWORD is a non-keyword symbol (without \":\" prefix in the name) wrap
 its value into a list and re-apply the function to it."
   (if (not (keywordp keyword-or-symbol))
-      (spacemacs//bind-interpret state (list keyword-or-symbol))
+      (spacemacs//bind-dispatch state (list keyword-or-symbol))
     (setf (spacemacs--bind-state-ctype state) keyword-or-symbol)
     state))
 
-(cl-defmethod spacemacs//bind-interpret ((state spacemacs--bind-state)
+(cl-defmethod spacemacs//bind-dispatch ((state spacemacs--bind-state)
                                          (sexp list))
   "Apply STATE method from ctype slot to SEXP and append output to rsexp slot."
   (cl-callf append (spacemacs--bind-state-rsexp state)
     (funcall (spacemacs--bind-state-ctype state) state sexp))
   state)
 
-(cl-defmethod spacemacs//bind-interpret ((state spacemacs--bind-state)
+(cl-defmethod spacemacs//bind-dispatch ((state spacemacs--bind-state)
                                          (_ string))
   "Append STR to the RSEXP of STATE. Can be used as a doc-string."
   state)
@@ -298,7 +298,7 @@ form starts with a corresponding mode symbol.
 \(fn PROVIDER <<DELIMITER_KEYWORD> <BINDING_FORMS>...>...)"
   (declare (indent spacemacs//key-bindings:-indenter))
   (spacemacs--bind-state-rsexp
-   (seq-reduce 'spacemacs//bind-interpret
+   (seq-reduce 'spacemacs//bind-dispatch
                bindings
                (make-spacemacs--bind-state
                 :rsexp (if (null package)
