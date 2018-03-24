@@ -151,69 +151,56 @@ PATH passed to the applied function.
 NOTE: This function strips all newline characters, replaces successive spaces
 with a singular in string elements of FORM and trims tails of function labels
 delimited by \"|\" character."
-  (cl-destructuring-bind
-      (key-or-prefix
-       leader-label-or-fn-symbol
-       leader-label-or-next-form)
-      (mapcar (lambda (el)
-                (if (stringp el)
-                    (replace-regexp-in-string "[\n[:space:]]+" " " el)
-                  el))
-              form)
-    (let ((full-key-or-prefix (concat path " " key-or-prefix)))
-      (if (symbolp leader-label-or-fn-symbol)
-          (funcall k-fn
-                   full-key-or-prefix
-                   leader-label-or-fn-symbol
-                   (replace-regexp-in-string
-                    "[[:punct:][:space:]]*|.*"
-                    ""
-                    leader-label-or-next-form))
-        (funcall p-fn
-                 full-key-or-prefix
-                 leader-label-or-fn-symbol)))))
+  (when-let ((fm (and (stringp (car-safe form))
+                      (seq-take form 3))))
+    (list
+     (cl-destructuring-bind
+         (key-or-prefix
+          leader-label-or-fn-symbol
+          leader-label-or-next-form)
+         (mapcar (lambda (el)
+                   (if (stringp el)
+                       (replace-regexp-in-string "[\n[:space:]]+" " " el)
+                     el))
+                 fm)
+       (let ((full-key-or-prefix (concat path " " key-or-prefix)))
+         (if (symbolp leader-label-or-fn-symbol)
+             (funcall k-fn
+                      full-key-or-prefix
+                      leader-label-or-fn-symbol
+                      (replace-regexp-in-string
+                       "[[:punct:][:space:]]*|.*"
+                       ""
+                       leader-label-or-next-form))
+           (funcall p-fn
+                    full-key-or-prefix
+                    leader-label-or-fn-symbol)))))))
 
-(defun spacemacs//bind-form-walker (form path k-fn p-fn)
+(defun spacemacs//bind-form-walker-rec (path k-fn p-fn form)
+  "Recursive body of `spacemacs//bind-form-walker'"
+  (append
+   (spacemacs//bind-form-visitor form path k-fn p-fn)
+   (let ((bindings
+          ;; Strip prefix key and label if we are at prefix node.
+          (if (stringp (cadr form))
+              (cddr form)
+            form)))
+     ;; Is it a list of bind forms?
+     (when (consp (car-safe bindings))
+       (seq-mapcat
+        (apply-partially 'spacemacs//bind-form-walker-rec path k-fn p-fn)
+        bindings)))))
+
+(defun spacemacs//bind-form-walker (b-forms k-fn p-fn)
   "Part of `spacemacs--bind-state' interpreters implementation.
-FORM is a node of a binding tree without mode (car of the root form).
-PATH is a key sequence path (concatenation of cars) to the current tree node.
+B-FORMS is a root node of a binding tree without mode (car of the root form).
 K-FN called for each key binding node with 3 arguments: full_key_sequence,
 function_symbol and label_for_leader_menu.
 P-FN called for each prefix binding node with 2 arguments:
 full_key_prefix_sequence and label_for_leader_menu.
 Both K-FN and P-FN should return binding evaluation forms.
 The forms will be concatenated and substituted by `key-bindings:' macro."
-  (append
-   (when (char-or-string-p (car form))
-     (list (spacemacs//bind-form-visitor (seq-take form 3) path k-fn p-fn)))
-   (when-let ((unwrapped-car (and (consp (car-safe form))
-                                  (car form))))
-     (spacemacs//bind-form-walker
-      unwrapped-car
-      path
-      k-fn
-      p-fn))
-   (when-let ((next-child (and (consp (caddr form))
-                               (caddr form))))
-     (spacemacs//bind-form-walker
-      next-child
-      (concat path " " (car form))
-      k-fn
-      p-fn))
-   (when-let ((kb-form-next-sibling (and (consp (cadr form))
-                                         (cadr form))))
-     (spacemacs//bind-form-walker
-      kb-form-next-sibling
-      path
-      k-fn
-      p-fn))
-   (when-let ((p-form-next-sibling (and (consp (cadddr form))
-                                        (cadddr form))))
-     (spacemacs//bind-form-walker
-      p-form-next-sibling
-      (concat path " " (car form))
-      k-fn
-      p-fn))))
+  (spacemacs//bind-form-walker-rec "" k-fn p-fn b-forms))
 
 ;; Key bindings - keywords handlers
 
@@ -224,7 +211,6 @@ The forms will be concatenated and substituted by `key-bindings:' macro."
   "Interpreter for global binding forms."
   (spacemacs//bind-form-walker
    form
-   ""
    (lambda (key-seq fn-symbol label)
      `(progn
         (which-key-add-key-based-replacements
@@ -239,7 +225,6 @@ The forms will be concatenated and substituted by `key-bindings:' macro."
   (let ((mode (pop form)))
     (spacemacs//bind-form-walker
      form
-     ""
      (lambda (key-seq fn-symbol label)
        `(progn
           (which-key-add-major-mode-key-based-replacements
@@ -265,7 +250,6 @@ The forms will be concatenated and substituted by `key-bindings:' macro."
   (let ((mode (pop form)))
     (spacemacs//bind-form-walker
      form
-     ""
      (lambda (key-seq fn-symbol label)
        `(progn
           ;;FIXME: We should disable replacements when the mode is disabled."
