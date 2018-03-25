@@ -13,12 +13,28 @@
 ;;
 ;;; License: GPLv3
 
-(require 'cl)
-(require 'cl-generic)
+(message ">>>>>>>> ddls start time: %.3fs" (float-time (time-subtract (current-time) start-time)))
+(setq ddls-start-time (current-time))
+
+(let ((default-directory "/Users/sylvain/tmp/spacemacs_trick/")
+      (load-file-name "/Users/sylvain/tmp/spacemacs_trick/toto.el"))
+  (defun toto ()
+    "Toto function"
+    (message "this is toto")))
+
 (require 'eieio)
 (require 'ht)
 
+(require 'core-release-management)
 (require 'core-dotspacemacs)
+(require 'core-command-line)
+(require 'core-jump)
+(require 'core-keybindings)
+(require 'core-themes-support)
+(require 'core-toggle)
+(require 'core-fonts-support)
+
+(message ">>>>>>>> deps load time: %.3fs" (float-time (time-subtract (current-time) ddls-start-time)))
 
 (defun spacemacs-buffer/message (msg &rest args)
   "Display MSG in *Messages* prepended with '(Spacemacs)'.
@@ -70,12 +86,7 @@ ARGS: format string arguments."
 PACKAGES-SPECS is a list of symbols and/or lists declaring the packages
 and their associated properties. "
   (declare (indent defun))
-  (let ((layer-name (ddls//get-directory-name
-                     (if load-file-name
-                         ;; File is being loaded
-                         (file-name-directory load-file-name)
-                       ;; File is being evaluated
-                       default-directory))))
+  (let ((layer-name (ddls//get-layer-name-from-current-file)))
     `(setq ,(ddls//package:-variable-name layer-name) ',packages-specs)))
 
 ;; Autoload
@@ -98,6 +109,25 @@ PLIST is a property list supporting the following keywords:
 (defmacro load: (package &rest body)
   "Load a package by executing the given BODY."
   (declare (indent defun)))
+
+;; File types
+
+(defun ddls//create-extensions-regexp (&rest extensions)
+  "Return a regular expression that matches EXTENSIONS."
+  (concat "\\(" (mapconcat 'identity extensions "\\'\\|") "\\'\\)"))
+
+(string-match-p (ddls//create-extensions-regexp "\\.pyx" "\\.pxd" "\\.pxi") "toto/tata.pxd")
+(string-match-p (ddls//create-extensions-regexp "\\.pip" "requirements.*\\.txt" "requirements\\.in") "toto/requirements.in")
+
+(defmacro file-types: (&rest args)
+  ""
+  (declare (indent defun))
+  (let ((package (when (symbolp (car args) (car args))))
+        (args (if (symbolp (car args) (cdr args) args))))
+    (when (or (null package)
+              (ddls/package-used-p package))
+      `()
+      )))
 
 ;; Key bindings
 
@@ -360,7 +390,7 @@ directory with a name starting with `+'.")
 (defvar ddls--indexed-layers (make-hash-table :size 1024)
   "Hash map to index `ddls-layer' objects by their names.")
 
-(defvar ddls--used-layers '()
+(defvar ddls--used-layers '(spacemacs-bootstrap)
   "A non-sorted list of used layer name symbols.")
 
 (defvar ddls--packages-layer-file "packages2.el"
@@ -424,7 +454,7 @@ directory with a name starting with `+'.")
   "Initialize the layer."
   ;; packages
   ;; packages file is mandatory so we don't have to check for their existence.
-  (load (concat (oref layer :dir) ddls--packages-layer-file) nil t)
+  (ddls//load (concat (oref layer :dir) ddls--packages-layer-file))
   (let* ((lname (oref layer :name))
          (pspecs (symbol-value (ddls//package:-variable-name lname))))
     (oset layer :packages pspecs)
@@ -446,7 +476,7 @@ directory with a name starting with `+'.")
                      specs (ddls/get-indexed-package pname))))
       (ddls-layer/select-package layer package)))
   ;; configure packages in `ddls--load-now-layer-file' at startup
-  (load (concat (oref layer :dir) ddls--load-now-layer-file) nil t))
+  (ddls//load (concat (oref layer :dir) ddls--load-now-layer-file)))
 
 (defmethod ddls-layer/load-deferred ((layer ddls-layer))
   "Load deferred configuration of the layer.")
@@ -836,8 +866,7 @@ Return nil if package object is not found."
 (defun ddls/test ()
   (interactive)
   (setq gc-cons-threshold 402653184 gc-cons-percentage 0.6)
-  (let ((start-time (current-time))
-        (ddls--inhibit-warnings t)
+  (let ((ddls--inhibit-warnings t)
         (dotspacemacs-configuration-layers
          '(
            python
@@ -859,7 +888,7 @@ Return nil if package object is not found."
            )))
     ;; reinit data
     (setq ddls--indexed-layers (make-hash-table :size 1024))
-    (setq ddls--used-layers nil)
+    (setq ddls--used-layers '(spacemacs-bootstrap))
     (setq ddls--indexed-packages (make-hash-table :size 2048))
     (setq ddls--used-packages nil)
     ;; execute test
@@ -896,13 +925,14 @@ Return nil if package object is not found."
     (let ((layer (ddls/get-indexed-layer lname)))
       (ddls-layer/initialize layer)))
   ;; write big configuration file
-  (spacemacs/dump-vars-to-file '(ddls--indexed-layers
+  (spacemacs/dump-vars-to-file '(load-path
+                          ddls--indexed-layers
                           ddls--indexed-packages)
                         ddls-spacemacs-bigfile))
 
 (defun ddls/load-spacemacs-bfc ()
   "Load the Spacemacs big configuration file."
-  (load ddls-spacemacs-bigfile))
+  (ddls//load ddls-spacemacs-bigfile))
 
 (defun ddls//add-indexed-layer (layer)
   "Index a LAYER object."
@@ -984,16 +1014,16 @@ Return nil if layer object is not found."
 (defun ddls/set-used-layers-specs ()
   "Read used layers specs and set slots of corresponding indexed layers."
   ;; (dotspacemacs|call-func dotspacemacs/layers "Calling dotfile layers...")
-  (let ()
-    (unless ddls-exclude-all-layers
-      (dolist (specs dotspacemacs-configuration-layers)
-        (let* ((name (ddls//get-layer-name-from-specs specs))
-               (layer (ddls/get-indexed-layer name)))
-          (if (null layer)
-              (ddls//warning
-               "Unknown layer '%S' declared in dotfile." name)
-            (ddls-layer/set-specs layer specs)
-            (ddls-layer/mark-as-used layer)))))))
+  (unless ddls-exclude-all-layers
+    (dolist (specs dotspacemacs-configuration-layers)
+      (let* ((name (ddls//get-layer-name-from-specs specs))
+             (layer (ddls/get-indexed-layer name)))
+        (if (null layer)
+            (ddls//warning
+             "Unknown layer '%S' declared in dotfile." name)
+          (ddls-layer/set-specs layer specs)
+          (ddls-layer/mark-as-used layer))))
+    (setq ddls--used-layers (reverse ddls--used-layers))))
 
 (defun ddls/load-used-layers ()
   "Load the used layers."
@@ -1003,6 +1033,21 @@ Return nil if layer object is not found."
       (dolist (pname (oref layer :selected-packages))
         (ddls-package/mark-as-used (ddls/get-indexed-package pname))))))
 
+(defun ddls//get-layer-name-from-current-file ()
+  "Return the layer name for a current FILE."
+  (ddls//get-directory-name
+   (if load-file-name
+       ;; File is being loaded
+       (file-name-directory load-file-name)
+     ;; File is being evaluated
+     default-directory)))
+
+(defun ddls//get-layer-from-current-file ()
+  "Return a layer object for given FILE path."
+  (let ((layer-name (ddls//get-layer-name-from-current-file)))
+    (ddls/get-indexed-layer (intern layer-name))))
+
+
 (defun ddls//add-indexed-package (package)
   "Index a PACKAGE object."
   (puthash (oref package :name) package ddls--indexed-packages))
@@ -1010,6 +1055,10 @@ Return nil if layer object is not found."
 
 
 ;; Util Functions
+
+(defun ddls//load (file)
+  "Load FILE."
+  (load file nil (not init-file-debug)))
 
 (defun ddls//directory-type (path)
   "Return the type of directory pointed by PATH.
@@ -1054,5 +1103,17 @@ Returns nil if the directory is not a category."
 If `ddls--inhibit-warnings' is non nil then this function is a
 no-op."
   (unless ddls--inhibit-warnings (apply 'spacemacs-buffer/warning msg args)))
+
+(defvar spacemacs-post-user-config-hook nil
+  "Hook run after dotspacemacs/user-config")
+(defvar spacemacs-post-user-config-hook-run nil
+  "Whether `spacemacs-post-user-config-hook' has been run")
+
+(defun spacemacs/defer-until-after-user-config (func)
+  "Call FUNC if dotspacemacs/user-config has been called. Otherwise,
+defer call using `spacemacs-post-user-config-hook'."
+  (if spacemacs-post-user-config-hook-run
+      (funcall func)
+    (add-hook 'spacemacs-post-user-config-hook func)))
 
 (provide 'core-double-dot-layer-system)

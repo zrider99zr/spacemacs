@@ -615,7 +615,7 @@ If ARG is non nil then Ask questions to the user before installing the dotfile."
   (let ((dotspacemacs (dotspacemacs/location)))
     (if (file-exists-p dotspacemacs)
         (unless (with-demoted-errors "Error loading .spacemacs: %S"
-                  (load dotspacemacs))
+                  (load dotspacemacs nil (not init-file-debug)))
           (dotspacemacs/safe-load)))))
 
 (defun spacemacs/title-prepare (title-format)
@@ -672,7 +672,7 @@ Loads default .spacemacs template and suspends pruning of orphan packages.
 Informs users of error and prompts for default editing style for use during
 error recovery."
   (load (concat dotspacemacs-template-directory
-                ".spacemacs.template"))
+                ".spacemacs.template") nil (not init-file-debug))
   (defadvice dotspacemacs/layers
       (after error-recover-preserve-packages activate)
     (progn

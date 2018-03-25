@@ -14,11 +14,12 @@
 
 ;; Avoid garbage collection during startup.
 ;; see `SPC h . dotspacemacs-gc-cons' for more info
+(setq start-time (current-time))
 (setq gc-cons-threshold 402653184 gc-cons-percentage 0.6)
-(load-file (concat (file-name-directory load-file-name)
-                   "core/core-versions.el"))
-(load-file (concat (file-name-directory load-file-name)
-                   "core/core-load-paths.el"))
+(load (concat (file-name-directory load-file-name)
+              "core/core-versions.el") nil t)
+(load (concat (file-name-directory load-file-name)
+              "core/core-load-paths.el") nil t)
 
 (if (not (version<= spacemacs-emacs-min-version emacs-version))
     (error (concat "Your version of Emacs (%s) is too old. "
@@ -29,8 +30,9 @@
 
 
     ;; (require 'core-double-dot-layer-system)
+    ;; (dotspacemacs/load-file)
     ;; (ddls/test)
-
+    ;; (spacemacs/load-default-theme spacemacs--fallback-theme 'disable)
 
     (require 'core-spacemacs)
     (configuration-layer/load-lock-file)
@@ -39,6 +41,7 @@
     (configuration-layer/load)
     (spacemacs-buffer/display-startup-note)
     (spacemacs/setup-startup-hook)
+
     ;; (when dotspacemacs-enable-server
     ;;   (require 'server)
     ;;   (unless (server-start)))
