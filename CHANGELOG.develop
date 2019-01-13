@@ -240,9 +240,9 @@ Benner and Paweł Siudak):
 - forth (thanks to Tim Jaeger)
 - gpu (thanks to Evan Klitzke)
 - groovy (thanks to Sylvain Benner)
-- hy (thanks to Sylvain Benner)
+- hy (thanks to Sylvain Benner and yuhan0)
 - jr (thanks to Philippe Baron)
-- json (thanks to Sylvain Benner)
+- json (thanks to Sylvain Benner, Boris Buliga and Tommi Komulainen)
 - jsonnet (thanks to liztio and Robby O'Connor)
 - julia (thanks to Adam Beckmeyer and Guido Kraemer)
 - kotlin (thanks to Shanavas M)
@@ -253,7 +253,7 @@ Benner and Paweł Siudak):
 - restructuredtext (thanks to Wei-Wei Guo and Kalle Lindqvist)
 - semantic-web (thanks to Andreas Textor)
 **** Misc
-- multiple-cursors (thanks to Codruț Constantin Gușoi)
+- multiple-cursors (thanks to Codruț Constantin Gușoi and Thomas de Beauchêne)
 **** WEB services
 - confluence
 **** Readers
@@ -267,8 +267,9 @@ Benner and Paweł Siudak):
 - spacemacs-visual
 **** Tools
 - bm (thanks to Eugene Yaremenko and Binbin Ye)
-- lsp (thanks to Fangrui Song, 0bl.blwl, Cormac Cannon, Juuso Valkeejärvi, and
-  Sylvain Benner)
+- dap (thanks to Ivan Yonchovski)
+- lsp (thanks to Fangrui Song, 0bl.blwl, Cormac Cannon, Juuso Valkeejärvi, Guan
+  Xipeng, Ivan Yonchovski and Sylvain Benner)
 - node (thanks to jupl)
 - pass (thanks to Andrew Oppenlander, Kepi, Kalle Lindqvist, and Evan Klitzke)
 - sphinx (thanks to Wei-Wei Guo)
@@ -489,6 +490,8 @@ Benner and Paweł Siudak):
 - Remove space before question mark when updating packages (thanks to Kevin Ji)
 - Alternate buffers without taking into account their purpose (thanks to Thomas
   de Beauchêne)
+- Make query-replace work when frame is split (thanks to Dieter Komendera)
+- Don't skip missing .elc files when recompiling Elpa (thanks to RockyRoad29)
 *** Distribution changes
 - Refactored =spacemacs-bootstrap=, =spacemacs-ui=, and =spacemacs-ui-visual=
   layers:
@@ -733,6 +736,9 @@ Benner and Paweł Siudak):
   - =spacemacs/integrate-evil-search= also updates =evil-ex-search-direction=
     (thanks to Thanh Vuong)
   - Support directories in spacemacs/rename-file (thanks to Boris Buliga)
+  - Better delete file messages (thanks to duianto)
+  - Replace centered-buffer-mode with writeroom-mode (thanks to Eugene
+    Yaremenko)
 - Enable =evil-search= search module in evil state.
 - Improve function =spacemacs/sort-lines-by-column= to work on rectangular/block
   selection and warn the user about its requirements (thanks to duianto)
@@ -817,6 +823,7 @@ Benner and Paweł Siudak):
   to current layout (thanks to Miciah Masters)
 - Add actions to open funcs.el and layers.el from layers help (thanks to Boris
   Buliga)
+- Keep previous position on =toggle-maximize-buffer= (thanks to Ag Ibragimov)
 *** Layer changes and fixes
 **** Ansible
 - Add support for multiple vault password files, see later README.org
@@ -885,11 +892,15 @@ Benner and Paweł Siudak):
   Miciah Masters)
 - Fix issue with =c++-enable-clang-format-on-save= not taking effect when set
   (thanks to Silver Chan)
+- Added lsp support using either cquery or ccls backends (thanks to Cormac
+  Cannon and Fangrui Song)
 **** Cfengine
 - Fix publish in README (thanks to Eugene Yaremenko)
 - Add =ob-cfengine3= (thanks to Nick Anderson)
 - Configure =org-babel= for cfengine source blocks (thanks to Sylvain Benner)
 - Fixed flycheck initialization for syntax checking (thanks to Nick Anderson)
+- Fixed opening org file when cfengine and org layers enabled (thanks to Nick
+  Anderson)
 **** Chinese
 - Add package =chinese-conv= for conversion between simplified and traditional
   Chinese texts (Xiang Ji)
@@ -940,6 +951,7 @@ Benner and Paweł Siudak):
 - Make =clj-refactor= off by default (thanks to Arne Brasseur)
 - Allow to send input to the repl via RET in normal mode (thanks to Dieter
   Komendera)
+- Enable clojure-mode refactorings without clj-refactor (thanks to yuhan0)
 **** Coffeescript
 - Adds basic autocompletion (thanks to Codruț Constantin Gușoi)
 - Key bindings (thanks to Kalle Lindqvist):
@@ -1082,6 +1094,7 @@ Benner and Paweł Siudak):
 - Add Julia repl to =spacemacs/ess-start-repl= (thanks to Guido Kraemer)
 - Reorganize key bindings ( refer to =ESS= section in Breaking Changes above )
 - Add =xref= integraton (thanks to Guido Kraemer)
+- Update ess-disable-underscore-assign for ESS 18.10 (thanks to Leonard Lausen)
 **** Evil snipe
 - Must always explicitly enable =evil-snipe-mode= even when
   =evil-snipe-override-mode= is enabled (thanks to Sylvain Benner)
@@ -1132,6 +1145,7 @@ Benner and Paweł Siudak):
 - Add =helm-git-grep= (thanks to Evan Klitzke)
 - Enable colors in =magit-log= (thanks to Thomas de Beauchêne)
 - Add magit buffers to useless buffers (thanks to Thomas de Beauchêne)
+- Fixed magint blame function name (thanks to Bjarke Vad Andersen)
 **** Go
 - Improve go test output buffer behavior (thanks to Denis Bernard)
 - Configurable extra arguments to go test (thanks to Ian Clark)
@@ -1231,6 +1245,8 @@ Benner and Paweł Siudak):
 - Add guard to check if =winum= is loaded (thanks to Dan Girshovich)
 - Fix regression: void function =helm-current-directory= on =C-x C-f= (thanks to
   bmag)
+- Fix opening files from buffers without winum (thanks to Codruț Constantin
+  Gușoi)
 **** HTML
 - Added impatient-mode under ~SPC m i~ (thanks to geo7)
 - Add =counsel-css= as an ivy alternative to =helm-css-scss= (thanks to Robbert
@@ -1239,7 +1255,10 @@ Benner and Paweł Siudak):
 - Added impatient-mode under ~SPC m i~ (thanks to geo7)
 - XML files now open with web-mode by default (thanks to Jordan Gwyn)
 - Added =helm-xref= (thanks to Fangrui Song and Sylvain Benner)
-- Removed ~TAB~ binding for emacs editing style in =emmet-mode= (thanks to Kalle Lindqvist)
+- Removed ~TAB~ binding for emacs editing style in =emmet-mode= (thanks to Kalle
+  Lindqvist)
+- Revert setting company min. prefix length to 0 for company-web backend (thanks
+  to Dela Anthonio)
 **** Hy
 - Add support for virtual envs (thanks to Danny Freeman)
 **** Idris
@@ -1253,6 +1272,7 @@ Benner and Paweł Siudak):
   - ~SPC m s~ to split cell at point (thanks to Jaakko Luttinen)
   - ~<C-return>~ (execute cell) and ~<S-return>~ (execute cell and go to next)
     also in hybrid mode (thanks to Jaakko Luttinen)
+  - Remove spurious key binding (thanks to Carlos Andrés Rocha)
 **** Ivy
 - Add =recentf= alt actions to refresh and delete items (thanks to Rich Alesi)
 - Add =projectile= alternate actions to invalidate cache (thanks to Rich Alesi)
@@ -1291,6 +1311,7 @@ Benner and Paweł Siudak):
 - Fix ~SPC m s~ key bindings for wgrep (thanks to John Lee)
 - Update =ivy-rich= config for upstream changes (thanks to bmag)
 - Add ~C-r~ keybinding for counsel-minibuffer-history (thanks to James Wang)
+- Fix counsel search errors due to function rename (thanks to Aaron Jensen)
 **** Imenu-list
 - Fix key bindings (thanks to bet4it):
   - ~r~ inside imenu-list buffer to refresh
@@ -1392,6 +1413,7 @@ Benner and Paweł Siudak):
   - ~SPC m i l~ and ~SPC m i L~ replaced by markdown-insert-link ~SPC m i l~.
   - Add ~SPC m t m~ for =markdown-toggle-markup-hiding=
   - Rename =markdown-jump= to =markdown-do=
+- Hide MMM mode-line indicator (thanks to duianto)
 **** Major modes
 - Added SPARQL-mode (thanks to Dietrich Daroch)
 - Move =extra-langs= to =major-modes= (thanks to Eivind Fonn)
@@ -1582,6 +1604,9 @@ Benner and Paweł Siudak):
 **** PHP
 - Add company-php (thanks to jim and Eivind Fonn)
 - Fix php-company autocompletion (thanks to Dela Anthonio)
+**** Platinum
+- Added the =.plum= extension to the platinum modes (thanks to Sylvain Benner)
+- Remove automatic indentation on paste (thanks to Sylvain Benner)
 **** Prodigy
 - Compatibility fix for upstream change (thanks to Francesc Elies)
 - Key bindings:
@@ -1662,6 +1687,8 @@ Benner and Paweł Siudak):
 - Delete rcirc-reconnect in favor of built-in cmd (thanks to Miciah Masters)
 - Move config defaults to package :init so they can be overridden
 (thanks to Miciah Masters)
+- Fix compiler warnings in =rcirc-late-fix= (thanks to Miciah Masters)
+- Add variable =rcirc-enable-late-fix= (thanks to Miciah Masters)
 **** React
 - Improve =magic-mode-alist= regular expression to detect =react= files
   (thanks to Jan Zdráhal)
@@ -1725,6 +1752,7 @@ Benner and Paweł Siudak):
   - Add ~SPC m c t~ to run the current test with Cargo, and fix documentation
     for ~SPC m c f~ to format project files (thanks to Luke Alexander Stein)
   - Add ~SPC m c v~ to run "cargo check" command (thanks to Victor Polevoy)
+- Add rust lsp completion with company and bindings (thanks to Justin)
 **** Scala
 - Move =ensime= to the =java= layer (Tor Hedin Bronner)
 - Key bindings:
@@ -1758,8 +1786,10 @@ Benner and Paweł Siudak):
 - Override read-only when capturing clear in shell (thanks to Alexander Wingård)
 - Wrap 'shell' command to start in current buffer (thanks to Valts Liepiņš)
 - Fixed shell popup broken on macOS (thanks to Daniel Rivas Perez)
+- Fix broken leader key binding for inferior shell (thanks to Valts Liepiņš)
 **** Shell Scripts
-- Add new company-shell environment variable backend (thanks to Alexander-Miller)
+- Add new company-shell environment variable backend (thanks to
+  Alexander-Miller)
 - Add bashate style checker (thanks to Victor Cuadrado Juan)
 - Add insert commands from sh-script package to major mode menu (thanks to
   Maximilian Wolff)
@@ -1885,6 +1915,7 @@ Benner and Paweł Siudak):
 - Enabled =smartparens-mode= (thanks to Andrea Moretti)
 - Add =prettier= to error msg of =spacemacs/typescript-format= (thanks to Matt
   Kramer)
+- Fix jump handling with multiple backends (thanks to Aaron Jensen)
 **** Vagrant
 - Key bindings:
   - move key bindings prefix to ~SPC a V~ (thanks to Thomas de Beauchêne)
@@ -1930,8 +1961,9 @@ Benner and Paweł Siudak):
 *** Various improvements
 - Lots of improvement with CI and documentation exporting (thanks to Eugene
   Yaremenko)
-- Various code style improvements (thanks to bmag, duianto, Eivind Fonn, Eugene
-  Yaremenko, Fabien Dubosson, Kalle Lindqvist, Sylvain Benner)
+- Various code and style improvements (thanks to bmag, duianto, Eivind Fonn,
+  Eugene Yaremenko, Fabien Dubosson, Kalle Lindqvist, Boris Buliga, yuhan0,
+  Sylvain Benner)
 - Multiple unit test improvements (thanks to Sylvain Benner, et2010 and Codruț
   Constantin Gușoi)
 - Various documentation improvements (thanks Aaron Jensen, Aaron Peckham, Adam
@@ -1953,14 +1985,14 @@ Benner and Paweł Siudak):
   Ieni, Max Beutelspacher, Max Nordlund, Maximilian Wolff, Miciah Dashiel Butler
   Masters, mjkramer, Mikhail Yakutovich, Muneeb Shaikh, Nasser Alshammari,
   Nasser Alshammari, Niko Felger, Nikolai Myllymäki, nikolaiam, Nicolas
-  Forgerit, Olivier Verdier, pancho horrillo, Paul Milla, Paulo Schneider, Pawan
+  Forgerit, Olivier Verdier, Pancho Horrillo, Paul Milla, Paulo Schneider, Pawan
   Dubey, Paweł Siudak, Phil Pirozhkov, Philippe Bourdages, Piotr Grzesik, Rafi
   Khan, Rand01ph, rakyi, Raymond Wanyoike, Reverend Homer, Robby O'Connor,
-  Rhommel Lamas, Sam Pablo Kuper, Saulius Menkevičius, sduthil, Shane Kilkelly,
-  Sid Kapur, Somelauw, Soobin Rho, sorawee, SteveJobzniak, Sunghyun Hwang,
-  Swaroop C H, Sylvain Benner, Szunti, Tim Stewart, timor, TinySong, Titov
-  Andrey, Thomas de Beauchêne, Tomasz Cichocinski, tzhao11, Vlad Bokov, Vladimir
-  Kochnev, Wieland Hoffmann, Xiang Ji, Yi Liu, zer09, Zhige Xin)
+  Rhommel Lamas, Sam Pablo Kuper, Saulius Menkevičius, sduthil, Sergio Ugalde,
+  Shane Kilkelly, Sid Kapur, Somelauw, Soobin Rho, sorawee, SteveJobzniak,
+  Sunghyun Hwang, Swaroop C H, Sylvain Benner, Szunti, Tim Stewart, timor,
+  TinySong, Titov Andrey, Thomas de Beauchêne, Tomasz Cichocinski, tzhao11, Vlad
+  Bokov, Vladimir Kochnev, Wieland Hoffmann, Xiang Ji, Yi Liu, zer09, Zhige Xin)
 *** Release notes summarized
   Thanks to: Grant Shangreaux, Songpeng Zu, Igor Almeida, Miciah Dashiel Butler
   Masters, Abhishek(Compro) Prasad, Deepak Khidia, Ward Harris, Jiahao Jiang
