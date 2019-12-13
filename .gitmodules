@@ -1,0 +1,3 @@
+[submodule "layers/exwm"]
+	path = layers/exwm
+	url = https://github.com/zrider99zr/spacemacsOS.git
