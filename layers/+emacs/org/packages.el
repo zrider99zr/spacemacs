@@ -265,6 +265,7 @@ Will work on both org-mode and any mode that accepts plain html."
         "tdr" 'org-table-kill-row
         "te" 'org-table-eval-formula
         "tE" 'org-table-export
+        "tf" 'org-table-field-info
         "th" 'org-table-previous-field
         "tH" 'org-table-move-column-left
         "tic" 'org-table-insert-column
@@ -652,7 +653,8 @@ Headline^^            Visit entry^^               Filter^^                    Da
       (spacemacs/set-leader-keys-for-major-mode 'message-mode
         "em" 'org-mime-htmlize)
       (spacemacs/set-leader-keys-for-major-mode 'org-mode
-        "em" 'org-mime-org-buffer-htmlize))))
+        "em" 'org-mime-org-buffer-htmlize
+        "es" 'org-mime-org-subtree-htmlize))))
 
 (defun org/init-org-pomodoro ()
   (use-package org-pomodoro
