@@ -807,3 +807,4 @@ Headline^^            Visit entry^^               Filter^^                    Da
     :defer t
     :init
     (add-hook 'org-mode-hook 'org-sticky-header-mode)))
+
