@@ -1705,6 +1705,7 @@ Other:
 - Added =xref= integration (thanks to Guido Kraemer)
 - Update ess-disable-underscore-assign for ESS 18.10 (thanks to Leonard Lausen)
 - Update layer with the latest upstream changes (thanks to Guido Kraemer)
+- Evilified states for ess help buffer (thanks to ft)
 **** Evil snipe
 - Must always explicitly enable =evil-snipe-mode= even when
   =evil-snipe-override-mode= is enabled (thanks to Sylvain Benner)
@@ -1901,6 +1902,7 @@ Other:
 - Fixed jump handlers for =dante= and =inferno=
   (thanks to cjay, CthulhuDen and Magnus Therning)
 - Included =attrap= when =dante= is used (thanks to Pepe Iborra)
+- Added keybinding ~C-c C-z~ for =haskell-interactive-switch= (thanks to ft)
 **** Helm
 - New packages:
   - =helm-ls-git= (thanks to duianto)
@@ -2012,6 +2014,7 @@ Other:
   - Remove spurious key binding (thanks to Carlos Andrés Rocha)
   - Added ~SPC a y r~ =ein:run= (thanks to Zach Pearson)
   - Added ~SPC a y s~ =ein:stop= (thanks to Zach Pearson)
+  - Added package dependencies for =ein= (thanks to ft)
 **** Ivy
 - Added =recentf= alt actions to refresh and delete items (thanks to Rich Alesi)
 - Added =projectile= alternate actions to invalidate cache (thanks to Rich Alesi)
@@ -2113,6 +2116,7 @@ Other:
     - ~SPC m r g o~ to generate method overrides
     - ~SPC m c p~ create spring boot project
       (thanks to Ivan Yonchovski)
+  - Fixed ~SPC m m t C-a~ it was bound to ~SPC m m t C - a~ (thanks to duianto)
 - Improvements:
   - Added support for multiple backends. Supported backends are: =meghanada=,
     =eclim=. The default backend is =meghanada=. (thanks to Ivan Yonchovski)
@@ -2127,6 +2131,7 @@ Other:
   - Added =transient= (package update temp folder) to
     .gitignore (thanks to Jarosław Górny)
   - Added /** */ smartparens pair (thanks to Ivan Yonchovski)
+  - Added the prefix name "actionable" to ~SPC m a~ (thanks to duianto)
 - Fixes:
   - Replace usage of =ensime-print-type-at-point= by =ensime-type-at-point=
     (thanks to Joao Azevedo)
@@ -2138,6 +2143,9 @@ Other:
   - Fixed prefixes for =java-mode= and =gradle-mode= (thanks to Seong Yong-ju)
   - Enabled =lsp-java= when the =java-backend= is =nil= and the =lsp= layer is
     enabled (thanks to Ivan Yonchovski)
+  - Fixed =dap-java= shortcuts (thanks to Ivan Yonchovski)
+  - Removed =lsp-java= configurations for missing properties or for defaults
+    that already are set by =lsp-mode/lsp-java= (thanks to Ivan Yonchovski)
 **** Javascript
 - Improvements:
   - Leverage js-doc Yasnippet integration if available (thanks to Andriy Kmit')
@@ -2152,6 +2160,7 @@ Other:
   - Added a =javascript-lsp-linter= variable to allow for disabling =lsp= as a
     linter for =javascript= and =react=, when =lsp= is set as the backend
     (thanks to Thanh Vuong)
+  - Documented how to: Enable =lsp=. Install =flow= (thanks to William Blasko)
 - Key bindings
   - Improved coffeescript support (thanks to Kalle Lindqvist):
     - ~SPC m '~ to create or go to REPL
@@ -2215,6 +2224,7 @@ Other:
   - ~SPC m N~ goto previous error
     (thanks to Olivier Verdier)
 - Fixed README to say auto-fill on by default. (thanks to Max Willsey)
+- Added ConTeXt mode to the key bindings (thanks to ft)
 **** Lua
 - Added support for auto-completion with =company= (thanks to halfcrazy)
 - Added support for =LSP= (EmmyLua-LS-all) (thanks to Lin.Sun)
@@ -2392,6 +2402,8 @@ Other:
 - Open GitHub patches fullscreen
 - Add next and previous message bindings to notmuch-tree mode
 - Change the ~C-n~ and ~C-p~ message keys to their original ~N~ and ~P~ bindings
+- Edit require from =org-notmuch= to =ol-notmuch= as per org-mode update 9.3.1
+  (thanks to Loys Ollivier)
 **** OCaml
 - Allow initialization without requiring =opam= (thanks to Bernhard Schommer)
 - Fixed misused functions, =merlin= is a package not a layer
@@ -3209,9 +3221,9 @@ Other:
   Ugalde, Shane Kilkelly, Sid Kapur, Som Poddar, Somelauw, Soobin Rho, sorawee,
   SteveJobzniak, Sunghyun Hwang, Swaroop C H, Sylvain Benner, Szunti, Thijs
   Vermeir, Tianyi Wang, Tim Stewart, timor, TinySong, Titov Andrey, Thomas de
-  Beauchêne, Tomasz Cichocinski, Trey Merkley, tzhao11, Vincent Taing, Vlad
-  Bokov, Vladimir Kochnev, wenpin, Wieland Hoffmann, Witoslaw Koczewski, Xiang
-  Ji, Yi Liu, Zane Sterling, zer09, Zhige Xin)
+  Beauchêne, Tomasz Cichocinski, Trey Merkley, tzhao11, Vincent Taing, Ullas
+  Holla, Vlad Bokov, Vladimir Kochnev, wenpin, Wieland Hoffmann, Witoslaw
+  Koczewski, Xiang Ji, Yi Liu, Zane Sterling, zer09, Zhige Xin)
 **** Documentation and website
   - DOCUMENTATION.org:
     - Fixed the example for how to change the separator style
