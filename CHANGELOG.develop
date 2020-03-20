@@ -364,6 +364,9 @@ sane way, here is the complete list of changed key bindings
 - ietf (thanks to Christian Hopps and Robby O'Connor)
 - multiple-cursors (thanks to Codruț Constantin Gușoi and Thomas de Beauchêne)
 - parinfer (thanks to Tianshu Shi)
+**** Music
+- pianobar (thanks to Leo Littlebook)
+- tidalcycles (thanks to rbino)
 **** Readers
 - epub (thanks to Jeremy Dormitzer and André Peric Tavares)
 **** Spacemacs
@@ -380,7 +383,7 @@ sane way, here is the complete list of changed key bindings
 - debug (thanks to Hodge Shen, Troy Hinckley, and Sylvain Benner)
 - dotnet (thanks to Jordan Kaye)
 - import-js (thanks to Thanh Vuong and Seong Yong-ju)
-- kubernetes (thanks to Matt Bray)
+- kubernetes with tramp support (thanks to Matt Bray and Maximilian Wolff)
 - lsp (thanks to Fangrui Song, 0bl.blwl, Cormac Cannon, Juuso Valkeejärvi,
   Guan Xipeng, Ivan Yonchovski, Justin Martin, dscole and Sylvain Benner)
 - node (thanks to jupl)
@@ -390,6 +393,7 @@ sane way, here is the complete list of changed key bindings
 - sailfish-developer (thanks to Victor Polevoy)
 - sphinx (thanks to Wei-Wei Guo)
 - tern (thanks to Sylvain Benner and Juuso Valkeejärvi)
+- tide (thanks to Thanh Vuong)
 - transmission (thanks to Eugene Yaremenko)
 - web-beautify (thanks to Sylvain Benner and Juuso Valkeejärvi)
 - xclipboard (thanks to Charles Weill, Sylvain Benner, and Alex Palaistras)
@@ -436,6 +440,7 @@ sane way, here is the complete list of changed key bindings
     will obfuscate the current buffer acting like a screen saver.
     (thanks to Eugene Yaremenko and Sylvain Benner)
   - New variable =dotspacemacs-undecorated-at-startup= (thanks to bb2020)
+  - New variable =dotspacemacs-startup-buffer-show-version= (thanks to Zach Pearson)
 - Removed Variables:
   - Removed unused variable =dotspacemacs-verbose-loading= from
     =.spacemacs.template= (thanks to Ying Qu)
@@ -722,78 +727,71 @@ Other:
   - New key binding ~SPC b H~ to open or select the =*Help*= buffer
     (thanks to duianto)
   - New ~SPC D~ prefix for diff commands using =ediff=:
-    - ~SPC D b 3~   ediff-buffers3
-    - ~SPC D b b~   ediff-buffers
-    - ~SPC D b p~   ediff-patch-buffer
-    - ~SPC D B~     ediff-backup
-    - ~SPC D d 3~   ediff-directories3
-    - ~SPC D d d~   ediff-directories
-    - ~SPC D d r~   ediff-directory-revisions
-    - ~SPC D f .~   spacemacs/ediff-dotfile-and-template
-    - ~SPC D f 3~   ediff-files3
-    - ~SPC D f f~   ediff-files
-    - ~SPC D f p~   ediff-patch-file
-    - ~SPC D h~     ediff-documentation
-    - ~SPC D m b 3~ ediff-merge-buffers-with-ancestor
-    - ~SPC D m b b~ ediff-merge-buffers
-    - ~SPC D m d 3~ ediff-merge-directories-with-ancestor
-    - ~SPC D m d d~ ediff-merge-directories
-    - ~SPC D m f 3~ ediff-merge-files-with-ancestor
-    - ~SPC D m f f~ ediff-merge-files
-    - ~SPC D m r 3~ ediff-merge-revisions-with-ancestor
-    - ~SPC D m r r~ ediff-merge-revisions
-    - ~SPC D r l~   ediff-regions-linewise
-    - ~SPC D r w~   ediff-regions-wordwise
-    - ~SPC D s~     ediff-show-registry
-    - ~SPC D v~     ediff-revision
-    - ~SPC D w l~   ediff-windows-linewise
-    - ~SPC D w w~   ediff-windows-wordwise
+    - ~SPC D b 3~ Between 3 buffers
+    - ~SPC D b b~ Between 2 buffers
+    - ~SPC D b p~ With backup file
+    - ~SPC D B~   With a patch
+    - ~SPC D d 3~ Between 3 directories
+    - ~SPC D d d~ Between 2 directories
+    - ~SPC D d r~ Using SCM revisions
+    - ~SPC D f .~ With Spacemacs dotfile
+    - ~SPC D f 3~ Between 3 files
+    - ~SPC D f f~ Between 2 files
+    - ~SPC D f p~ With a patch
+    - ~SPC D f v~ Between file revisions
+    - ~SPC D h~ Documentation
+    - ~SPC D m b 3~ Buffer 3-way merge
+    - ~SPC D m b b~ Buffer 2-way merge
+    - ~SPC D m d 3~ Directorie 3-way merge
+    - ~SPC D m d d~ Directorie 2-way merge
+    - ~SPC D m f 3~ File 3-way merge
+    - ~SPC D m f f~ File 2-way merge
+    - ~SPC D m r 3~ Revision 3-way merge
+    - ~SPC D m r r~ Revision 2-way merge
+    - ~SPC D r l~ Between 2 large regions
+    - ~SPC D r w~ Between 2 small regions
+    - ~SPC D s~ Show registries
+    - ~SPC D w l~ Linewise between visible text
+    - ~SPC D w w~ Wordwise between visible text
     (thanks to Spenser Truex)
   - New ~SPC K~ prefix and subprefixes to use keyboard macros built-ins:
-    - ~SPC K (~   kmacro-start-macro-or-insert-counter
-    - ~SPC K )~   kmacro-end-or-call-macro-repeat
-    - ~SPC K 2 c~ kmacro-call-ring-2nd
-    - ~SPC K 2 C~ kmacro-call-ring-2nd-repeat
-    - ~SPC K 2 v~ kmacro-view-ring-2nd
-    - ~SPC K a~   kmacro-add-counter
-    - ~SPC K b~   kmacro-bind-to-key
-    - ~SPC K c~   kmacro-call-macro
-    - ~SPC K d~   kmacro-delete-ring-head
-    - ~SPC K e l~ kmacro-edit-lossage
-    - ~SPC K e m~ kmacro-edit-macro
-    - ~SPC K e r~ kmacro-edit-macro-repeat
-    - ~SPC K e t~ kmacro-step-edit-macro
-    - ~SPC K i~   kmacro-insert-counter
-    - ~SPC K m~   kmacro-end-call-mouse
-    - ~SPC K n~   kmacro-cycle-ring-next
-    - ~SPC K N~   kmacro-name-last-macro
-    - ~SPC K p~   kmacro-cycle-ring-previous
-    - ~SPC K r~   helm-register
-    - ~SPC K s c~ kmacro-set-counter
-    - ~SPC K s f~ kmacro-set-format
-    - ~SPC K s r~ kmacro-swap-ring
-    - ~SPC K v~   kmacro-view-macro
-    - ~SPC K V~   kmacro-view-macro-repeat
-    - ~SPC K w~   kmacro-to-register
-    - ~SPC K y~   jump-to-register
+    - ~SPC K c a~  increment macro counter
+    - ~SPC K c c~  insert the current value of the macro counter
+    - ~SPC K c C~  set the macro counter
+    - ~SPC K c f~  set the display format for the macro counter
+    - ~SPC K e b~  assign a key binding to the last macro
+    - ~SPC K e e~  edit last macro in a buffer
+    - ~SPC K e l~  edit a macro from lossage information
+    - ~SPC K e n~  give a name to the last macro
+    - ~SPC K e r~  write the last macro to a register (use ~SPC r r~ to call it)
+    - ~SPC K e s~  step by step edit of the last macro
+    - ~SPC K k~ start recording macro, if already recording then insert counter
+    - ~SPC K K~  stop recording macro or run last macro
+    - ~SPC K r L~  view head macro in ring
+    - ~SPC K r d~  delete head macro in ring
+    - ~SPC K r l~  run second macro in ring
+    - ~SPC K r n~  cycle to next macro in ring
+    - ~SPC K r p~  cycle to previous macro in ring
+    - ~SPC K r s~  swap the first two macros in ring
+    - ~SPC K v~    view last macro string in minibuffer
     (thanks to Spenser Truex)
-  - New ~SPC R~ prefix to use rectangle manipulation built-ins:
-    - ~SPC R !~ clear-rectangle
-    - ~SPC R c~ close-rectangle
-    - ~SPC R d~ delete-rectangle
-    - ~SPC R e~ rectangle-exchange-point-and-mark
-    - ~SPC R i~ copy-rectangle-to-register
-    - ~SPC R k~ kill-rectangle
-    - ~SPC R l~ rectangle-left-char
-    - ~SPC R m~ rectangle-mark-mode
-    - ~SPC R n~ rectangle-next-line
-    - ~SPC R N~ rectangle-number-lines
-    - ~SPC R o~ open-rectangle
-    - ~SPC R p~ rectangle-previous-line
-    - ~SPC R r~ rectangle-right-char
-    - ~SPC R s~ string-rectangle
-    - ~SPC R t~ transpose-regions
-    - ~SPC R y~ yank-rectangle
+  - New ~SPC C-v~ prefix to use rectangle manipulation built-ins:
+    - ~SPC C-v !~ clear-rectangle
+    - ~SPC C-v c~ close-rectangle
+    - ~SPC C-v d~ delete-rectangle
+    - ~SPC C-v e~ rectangle-exchange-point-and-mark
+    - ~SPC C-v i~ copy-rectangle-to-register
+    - ~SPC C-v k~ kill-rectangle
+    - ~SPC C-v l~ rectangle-left-char
+    - ~SPC C-v m~ rectangle-mark-mode
+    - ~SPC C-v n~ rectangle-next-line
+    - ~SPC C-v N~ rectangle-number-lines
+    - ~SPC C-v o~ open-rectangle
+    - ~SPC C-v p~ rectangle-previous-line
+    - ~SPC C-v r~ rectangle-right-char
+    - ~SPC C-v s~ string-rectangle
+    - ~SPC C-v t~ transpose-regions
+    - ~SPC C-v y~ yank-rectangle
     (thanks to Spenser Truex)
   - New ~SPC t t~ prefix for timeclock clock-in clock-out management:
     - ~SPC t t c~ timeclock-change
@@ -908,8 +906,8 @@ Other:
   - Move ~SPC t C p~ to ~SPC t h p~ for =highlight-parentheses-mode=
     (thanks to Thomas de Beauchêne)
   - New ~SPC t m r~ to toggle responsiveness of the mode-line
-  - New themes transient state key bindings ~t~ or ~<up>~ to open =helm-themes=
-    to select an installed theme (thanks to duianto)
+  - New themes transient state keys to list available themes: ~t~ or ~<up>~
+    (thanks to duianto and Muneeb Shaikh)
   - Added ~SPC t z~ to toggle zero-based column indexing in the mode line
   - New key binding and function ~SPC w d~ for =spacemacs/maximize-vertically
     (thanks to Ag Ibragimov)
@@ -947,6 +945,8 @@ Other:
     (thanks to Rich Alesi)
   - New key bindings ~SPC x l r~ and ~SPC x w r~ to randomize lines and words
     in region (thanks to Sylvain Benner)
+  - Improved =which-key= readibility by grouping prefixes together and display
+    at least 6 lines (thanks to Sylvain Benner)
   - Improved =which-key= replacement regular expressions (thanks to duianto)
   - Added ~SPC o~ which-key prefix name: =user bindings= (thanks to duianto)
   - Added =symbol-overlay= key bindings (thanks to kenkangxgwe):
@@ -1126,6 +1126,8 @@ Other:
     (thanks to Ivan Yonchovski)
   - Added a toggleable hint for the Scrolling Transient State (~SPC N~)
     (thanks to Andriy Kmit)
+  - Improved google-translate for set source language to "auto" and
+    select target language interactively (thanks to Lin Sun)
 - Fixed:
   - Fixed ~h~ key binding in compilation and grep buffers
     (thanks to Sylvain Benner)
@@ -1435,6 +1437,8 @@ Other:
   - Autoscroll to end of REPL when sending buffer content
     (thanks to Vitaly Banchenko)
   - Added ability to use multiple linters together (thanks to didibus)
+  - Added `spacemacs/cider-eval-sexp-end-of-line` to match lisp functionality
+    (thanks to John Stevenson)
 - Key bindings:
   - ~SPC m e ;~ to eval sexp and show result as comment
     (thanks to John Stevenson)
@@ -1517,6 +1521,12 @@ Other:
   - added evaluation keybinding - evaluate up to point
     ~SPC m e V~ 'cider-eval-sexp-up-to-point
     (thanks to John Stevenson)
+  - added evaluation keybinding - go to end of line and evaluate sexp
+    ~SPC m e $~ 'spacemacs/cider-eval-sexp-end-of-line
+    ~SPC m e l~ 'spacemacs/cider-eval-sexp-end-of-line
+  - added browse-spec keybindings
+    ~SPC m h s~ 'cider-browse-spec
+    ~SPC m h S~ 'cider-browse-spec-all
 - Fixes:
   - Removed =cider.nrepl/cider-middleware= in lein quick start setting
   - Fixed =cider-inspector-prev-page= binding, also add ~p~ as another key
@@ -1884,6 +1894,8 @@ Other:
 - Improvements:
   - Added a =@gnus= perspective (~SPC l o g~) to the layouts transient state
     (thanks to Matthew Leach)
+- Fixed:
+  - Made the gnus variables user configurable (thanks to duianto)
 **** Go
 - Deprecated:
   - Dropped support for deprecated =gometalinter= (thanks to pancho horrillo)
@@ -1894,7 +1906,7 @@ Other:
     one =go-linter= (thanks to Robert Zaremba)
 - Improvements:
   - Added =LSP= support (thanks to Lupco Kotev)
-  - Set =lsp-prefer-flymake= to =:none= when =Go= layer is using =LSP=
+  - Set =lsp-diagnostic-package= to =:none= when =Go= layer is using =LSP=
     (thanks to Tim Heckman)
   - Improved go test output buffer behavior (thanks to Denis Bernard)
   - Configurable extra arguments to =go run= (thanks to Enze Chi)
@@ -2094,6 +2106,7 @@ Other:
 **** IPython Notebook
 - Added support for auto-completion with =company= (thanks to tutysara)
 - Added =ob-ipython= (thanks to Alejandro Catalina)
+- DRY and tidiness update (thanks to dickmao)
 - Key bindings:
   - ~SPC a i l~ to login (thanks to Ben Mabey)
   - ~SPC m s~ to split cell at point (thanks to Jaakko Luttinen)
@@ -2103,6 +2116,9 @@ Other:
   - Added ~SPC a y r~ =ein:run= (thanks to Zach Pearson)
   - Added ~SPC a y s~ =ein:stop= (thanks to Zach Pearson)
   - Added package dependencies for =ein= (thanks to ft)
+  - Fixed keybindings per removal of =ein:notebook-multilang-mode=
+  - DRY and tidiness update by primary EIN developer
+  - Dynamically generate transient-state docstring.  Remove ob-ipython (Ibid.)
 **** Ivy
 - Added =recentf= alt actions to refresh and delete items (thanks to Rich Alesi)
 - Added =projectile= alternate actions to invalidate cache (thanks to Rich Alesi)
@@ -2130,6 +2146,8 @@ Other:
 - Limit =ripgrep= results to 150 columns (thanks to Aaron Jensen)
 - Use new API to register additional transient state bindings
   (thanks to Andriy Kmit')
+- Replaced custom hydra-menu by original and updated hydra-menu, introducing
+  marking feature (thanks to Daniel Nicolai)
 - Initiate the transient state with ~M-SPC~ while in a =ivy= buffer
   (thanks to Rich Alesi)
 - Set =ivy-use-selectable-prompt= to =t= (thanks to Boris Buliga)
@@ -2287,6 +2305,8 @@ Other:
   - Fixed =julia-mode-local-vars-hook= (thanks to Guido Kraemer)
   - Limited =evil-surround-pairs-alist= redefinitions to julia mode
     (thanks to duianto)
+  - Remove warning about LanguageServer.jl not working in 1.0
+    (thanks to Daniel Molina)
 **** Keyboard layout
 - Added support for Colemak layout (thanks to Daniel Mijares, Lyall Cooper and
   Eivind Fonn)
@@ -2329,7 +2349,6 @@ Other:
   (thanks to Cormac Cannon).
 - Replace lsp-capabilities keybinding with lsp-describe-session
   (thanks to Bryan Tan)
-- Added lsp-prefer-flymake variable (thanks to Juuso Valkeejärvi)
 - Added =lsp-treemacs=
   - ~SPC m t g e~ to show error list
 - Fixed missing shortcuts for =lsp-mode=
@@ -2348,6 +2367,9 @@ Other:
 - Required =helm= or =treemacs= to download =helm-lsp= or =lsp-treemacs=
   (thanks to Steven Allen)
 - Required =yasnippet= (thanks to Ivan Yonchovski)
+- Removed the now obsolete variable =lsp-prefer-flymake= (originally added by
+  Juuso Valkeejärvi), the new variable =lsp-diagnostic-package= is handled
+  upstream (thanks to duianto)
 **** Debug Adapter Protocol (DAP)
 - Layer variables:
   - Added variable =dap-enable-mouse-support=
@@ -2438,6 +2460,7 @@ Other:
 - Enabled scrolling in =mu4e= (thanks to Simon Altschuler)
 - Kill mu4e layout on app exit (thanks to Ag Ibragimov)
 - Restore ~gu~ binding for ~mu4e-view-go-to-url~ (thanks to Dominik Schrempf)
+- Updated assigned purpose names
 **** Multiple Cursors
 - Disabled Spacemacs paste transient state when pasting to avoid pasting issue
   when there are more than one cursor (thanks to braham-snyder)
@@ -2683,6 +2706,8 @@ Other:
 - Fixed =spacemacs/run-pandoc= not to reset =pandoc--local-settings=
   (thanks to martian-f)
 - Added declaration for the ~SPC P~ prefix (thanks to Codruț Constantin Gușoi)
+**** Pdf
+- Fixed ~'~ =pdf-view-jump-to-register= (thanks to duianto)
 **** Perl5
 - Fixed =spacemacs/perltidy-format-buffer= and
   =spacemacs/perltidy-format-function= to move the point and window to their
@@ -2940,6 +2965,13 @@ Other:
   - Added ~SPC m c t~ to run the current test with Cargo, and fix documentation
     for ~SPC m c f~ to format project files (thanks to Luke Alexander Stein)
   - Added ~SPC m c v~ to run "cargo check" command (thanks to Victor Polevoy)
+  - Added key bindings for =cargo-edit= plugin (thanks to Lucius Hu)
+    - ~SPC m c a~ for =cargo add=
+    - ~SPC m c r~ for =cargo rm=
+    - ~SPC m c U~ for =cargo upgrade=
+  - Added ~SPC m c A~ for =cargo audit= plugin (thanks to Lucius Hu)
+  - Modified ~SPC m c X~ for =cargo run --bin= command, instead of =cargo run --example= (thanks to Lucius Hu)
+  - Added ~SPC m c E~ for =cargo run --example= (thanks to Lucius Hu)
 - Added rust lsp completion with company and bindings (thanks to Justin)
 - Added debugger integration via =dap= layer
 - Fixed rust dap integration (thanks to Tommi Komulainen)
@@ -2947,6 +2979,8 @@ Other:
 - Fixed ~rust-quick-run~ command (thanks to Grant Shangreaux)
 - Removed compilation buffer string match on =rust-quick-run=
   (thanks to Grant Shangreaux)
+- Added/Updated instructions on external dependencies, =cargo-edit=, =cargo-audit=,
+  =rustfmt=, and =clippy= (thanks to Lucius Hu)
 **** Sailfish-Developer
 - Key bindings:
   - Added =sailfish-scratchbox= key bindings (thanks to Victor Polevoy):
@@ -3094,6 +3128,8 @@ Other:
 - Added key binding (thanks to Michael Hauser-Raspe):
   ~SPC m b c~ connect to a SQLi buffer from your saved buffer list
 - Added ~SPC m g~ prefix: =goto= (thanks to duianto)
+- Added regional ~sqlfmt~ invocation, error handling, and formatting bindings
+  (thanks to 0x6362)
 **** Spell-checking
 - Added spell checking transient state (thanks to Francesc Elies Henar)
 - Update to flyspell-correct v0.5 (thanks to Boris Buliga)
@@ -3161,6 +3197,7 @@ Other:
 - Added =chocolate-theme= (thanks to Henrique Jung)
 - Updated =doom-themes= list to reflect upstream
   (thanks to Dominic Pearson, Muneeb Shaikh)
+- Added highly accessible =modus-themes= (thanks to Muneeb Shaikh)
 **** Tmux
 - Prevent =tmux-command= at GUI mode (thanks to Isaac Zeng)
 - Fixed regression in tmux by setting keybindings using =use-package=
@@ -3308,8 +3345,8 @@ Other:
 - Various documentation improvements (thanks Aaron Jensen, Aaron Peckham, Aaron
   Renner, Adam Frey, Adam Kruszewski, ahanwadi, Aleksandr Argunov, Alexander
   Dalshov, Alexander Eberspächer, Alexander Iljin, Alexander Kjeldaas,
-  Alexandros Kotzias, Andrew Grangaard, Andrew Vit, Andriy Senyshyn, Anton
-  Latukha, Antonio Miranda, Anurag Sharma, Apromixately, Archenoth, Arjan Singh,
+  Alexandros Kotzias, Andrew Grangaard, Andrew Vit, Andriy Senyshyn, Anton Chevychalov,
+  Anton Latukha, Antonio Miranda, Anurag Sharma, Apromixately, Archenoth, Arjan Singh,
   Ather Sharif, Artur Juraszek, Benjamin Reynolds, Bernhard Schommer, Billy
   Wade, Brian Wignall, bmag, Boris Buliga, Boris Wong, Carl Lange, Cazim Hysi,
   Chase Adams, Christian Bäuerlein, Cibin Mathew, CL123123, Codruț Constantin
