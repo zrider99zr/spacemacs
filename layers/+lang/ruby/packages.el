@@ -1,6 +1,6 @@
 ;;; packages.el --- Ruby Layer packages File for Spacemacs
 ;;
-;; Copyright (c) 2012-2018 Sylvain Benner & Contributors
+;; Copyright (c) 2012-2020 Sylvain Benner & Contributors
 ;;
 ;; Author: Sylvain Benner <sylvain.benner@gmail.com>
 ;; URL: https://github.com/syl20bnr/spacemacs
@@ -37,8 +37,7 @@
     ruby-tools
     rvm
     seeing-is-believing
-    smartparens
-    ))
+    smartparens))
 
 (defun ruby/init-bundler ()
   (use-package bundler
@@ -70,8 +69,9 @@
   (spacemacs/counsel-gtags-define-keys-for-mode 'enh-ruby-mode))
 
 (defun ruby/pre-init-dap-mode ()
-  (add-to-list 'spacemacs--dap-supported-modes 'ruby-mode)
-  (add-to-list 'spacemacs--dap-supported-modes 'enh-ruby-mode)
+  (pcase (spacemacs//ruby-backend)
+    (`lsp (add-to-list 'spacemacs--dap-supported-modes 'ruby-mode)
+          (add-to-list 'spacemacs--dap-supported-modes 'enh-ruby-mode)))
   (spacemacs/add-to-hooks #'spacemacs//ruby-setup-dap
                           '(ruby-mode-local-vars-hook
                             enh-ruby-mode-local-vars-hook)))
@@ -138,19 +138,21 @@
   (spacemacs|use-package-add-hook org
     :post-config (add-to-list 'org-babel-load-languages '(ruby . t))))
 
-(defun ruby/post-init-popwin ()
-  (push '("*Bundler*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
-        popwin:special-display-config)
-  (push '("*projectile-rails-compilation*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
-        popwin:special-display-config)
-  (push '("*projectile-rails-generate*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
-        popwin:special-display-config)
-  (push '("*rake-compilation*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
-        popwin:special-display-config)
-  (push '("*rspec-compilation*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
-        popwin:special-display-config)
-  (push '("^\\*RuboCop.+\\*$" :regexp t :dedicated t :position bottom :stick t :noselect t :height 0.4)
-        popwin:special-display-config))
+(defun ruby/pre-init-popwin ()
+  (spacemacs|use-package-add-hook popwin
+    :post-config
+    (push '("*Bundler*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
+          popwin:special-display-config)
+    (push '("*projectile-rails-compilation*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
+          popwin:special-display-config)
+    (push '("*projectile-rails-generate*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
+          popwin:special-display-config)
+    (push '("*rake-compilation*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
+          popwin:special-display-config)
+    (push '("*rspec-compilation*" :dedicated t :position bottom :stick t :noselect t :height 0.4)
+          popwin:special-display-config)
+    (push '("^\\*RuboCop.+\\*$" :regexp t :dedicated t :position bottom :stick t :noselect t :height 0.4)
+          popwin:special-display-config)))
 
 (defun ruby/init-rake ()
   (use-package rake
