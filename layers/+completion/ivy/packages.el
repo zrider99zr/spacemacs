@@ -1,6 +1,6 @@
 ;;; packages.el --- Ivy Layer packages File
 ;;
-;; Copyright (c) 2012-2018 Sylvain Benner & Contributors
+;; Copyright (c) 2012-2020 Sylvain Benner & Contributors
 ;;
 ;; Author: Sylvain Benner <sylvain.benner@gmail.com>
 ;; URL: https://github.com/syl20bnr/spacemacs
@@ -20,6 +20,7 @@
         helm-make
         imenu
         ivy
+        ivy-avy
         ivy-hydra
         (ivy-rich :toggle ivy-enable-advanced-buffer-information)
         (ivy-spacemacs-help :location local)
@@ -42,8 +43,8 @@
            spacemacs--symbol-highlight-transient-state-doc
            "  Search: [_s_] swiper  [_b_] buffers  [_f_] files  [_/_] project"))
     (spacemacs/transient-state-register-add-bindings 'symbol-highlight
-      '(("s" spacemacs/swiper-region-or-symbol :exit t)
-        ("b" spacemacs/swiper-all-region-or-symbol :exit t)
+      '(("s" swiper-thing-at-point :exit t)
+        ("b" swiper-all-thing-at-point :exit t)
         ("f" spacemacs/search-auto-region-or-symbol :exit t)
         ("/" spacemacs/search-project-auto-region-or-symbol :exit t)))))
 
@@ -224,6 +225,7 @@
       ;; mappings to quit minibuffer or enter transient state
       (define-key ivy-minibuffer-map [escape] 'minibuffer-keyboard-quit)
       (define-key ivy-minibuffer-map (kbd "M-SPC") 'hydra-ivy/body)
+      (define-key ivy-minibuffer-map (kbd "C-<return>") #'ivy-alt-done)
 
       (when ivy-ret-visits-directory
         (define-key ivy-minibuffer-map (kbd "RET") #'ivy-alt-done)
@@ -245,6 +247,9 @@
 
       ;; allow to select prompt in some ivy functions
       (setq ivy-use-selectable-prompt t))))
+
+(defun ivy/init-ivy-avy ()
+  (use-package ivy-avy))
 
 (defun ivy/init-ivy-hydra ()
   (use-package ivy-hydra)
@@ -366,9 +371,9 @@
     (progn
       (spacemacs/set-leader-keys
         "ss" 'swiper
-        "sS" 'spacemacs/swiper-region-or-symbol
+        "sS" 'swiper-thing-at-point
         "sb" 'swiper-all
-        "sB" 'spacemacs/swiper-all-region-or-symbol)
+        "sB" 'swiper-all-thing-at-point)
       (global-set-key "\C-s" 'swiper))))
 
 (defun ivy/init-wgrep ()

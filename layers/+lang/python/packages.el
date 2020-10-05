@@ -37,6 +37,7 @@
     (python :location built-in)
     pyvenv
     semantic
+    sphinx-doc
     smartparens
     stickyfunc-enhance
     xcscope
@@ -45,7 +46,10 @@
     anaconda-mode
     (company-anaconda :requires company)
     ;; packages for Microsoft LSP backend
-    (lsp-python-ms :requires lsp-mode)))
+    (lsp-python-ms :requires lsp-mode)
+
+    ;; packages for Microsoft's pyright language server
+    (lsp-pyright :requires lsp-mode)))
 
 (defun python/init-anaconda-mode ()
   (use-package anaconda-mode
@@ -234,6 +238,17 @@
       (spacemacs/set-leader-keys-for-major-mode 'python-mode
         "rI" 'py-isort-buffer))))
 
+(defun python/init-sphinx-doc ()
+  (use-package sphinx-doc
+    :defer t
+    :init
+    (progn
+      (add-hook 'python-mode-hook 'sphinx-doc-mode)
+      (spacemacs/declare-prefix-for-mode 'python-mode "mS" "sphinx-doc")
+      (spacemacs/set-leader-keys-for-major-mode 'python-mode
+        "Se" 'sphinx-doc-mode
+        "Sd" 'sphinx-doc))))
+
 (defun python/pre-init-pyenv-mode ()
   (add-to-list 'spacemacs--python-pyenv-modes 'python-mode))
 (defun python/init-pyenv-mode ()
@@ -264,6 +279,7 @@
     :defer t
     :init
     (progn
+      (add-hook 'python-mode-hook #'pyvenv-tracking-mode)
       (pcase python-auto-set-local-pyvenv-virtualenv
         (`on-visit
          (dolist (m spacemacs--python-pyvenv-modes)
@@ -303,6 +319,8 @@
                pytest-pdb-one
                pytest-all
                pytest-pdb-all
+               pytest-last-failed
+               pytest-pdb-last-failed
                pytest-module
                pytest-pdb-module)
     :init (spacemacs//bind-python-testing-keys)
@@ -345,11 +363,14 @@
         "ri" 'spacemacs/python-remove-unused-imports
         "sB" 'spacemacs/python-shell-send-buffer-switch
         "sb" 'spacemacs/python-shell-send-buffer
+        "sE" 'spacemacs/python-shell-send-statement-switch
+        "se" 'spacemacs/python-shell-send-statement
         "sF" 'spacemacs/python-shell-send-defun-switch
         "sf" 'spacemacs/python-shell-send-defun
         "si" 'spacemacs/python-start-or-switch-repl
         "sR" 'spacemacs/python-shell-send-region-switch
-        "sr" 'spacemacs/python-shell-send-region)
+        "sr" 'spacemacs/python-shell-send-region
+        "sl" 'spacemacs/python-shell-send-line)
 
       ;; Set `python-indent-guess-indent-offset' to `nil' to prevent guessing `python-indent-offset
       ;; (we call python-indent-guess-indent-offset manually so python-mode does not need to do it)
@@ -450,3 +471,9 @@ fix this issue."
                                              "Microsoft.Python.LanguageServer"
                                              (and (eq system-type 'windows-nt)
                                                   ".exe"))))))
+
+(defun python/init-lsp-pyright ()
+  (use-package lsp-pyright
+    :if (eq python-lsp-server 'pyright)
+    :ensure nil
+    :defer t))

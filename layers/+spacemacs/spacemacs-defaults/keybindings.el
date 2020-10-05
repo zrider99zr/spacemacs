@@ -1,6 +1,6 @@
 ;;; keybindings.el --- Spacemacs Defaults Layer key-bindings File
 ;;
-;; Copyright (c) 2012-2019 Sylvain Benner & Contributors
+;; Copyright (c) 2012-2020 Sylvain Benner & Contributors
 ;;
 ;; Author: Sylvain Benner <sylvain.benner@gmail.com>
 ;; URL: https://github.com/syl20bnr/spacemacs
@@ -14,7 +14,7 @@
 ;; ---------------------------------------------------------------------------
 
 ;; We define prefix commands only for the sake of which-key
-(setq spacemacs/key-binding-prefixes '(("SPC" "M-x")
+(setq spacemacs/key-binding-prefixes `((,dotspacemacs-emacs-command-key "M-x")
                                        ("!"   "shell cmd")
                                        ("*"   "search project w/input")
                                        ("/"   "search project")
@@ -403,7 +403,8 @@
   "hdp" 'describe-package
   "hdP" 'configuration-layer/describe-package
   "hds" 'spacemacs/describe-system-info
-  "hdt" 'describe-theme
+  "hdt" 'describe-text-properties
+  "hdT" 'describe-theme
   "hdv" 'describe-variable
   "hI"  'spacemacs/report-issue
   "hn"  'view-emacs-news
@@ -441,6 +442,8 @@
   "cC" 'compile
   "ck" 'kill-compilation
   "cr" 'recompile
+  "cn" 'next-error
+  "cN" 'previous-error
   "cd" 'spacemacs/show-hide-compilation-window
   "cb" 'spacemacs/switch-to-compilation-buffer)
 (with-eval-after-load 'compile
