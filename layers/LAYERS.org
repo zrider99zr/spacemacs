@@ -1,7 +1,7 @@
 #+TITLE: Configuration layers
 
 * Table of Contents                     :TOC_5_gh:noexport:
-- [[#this-file-is-auto-generated][THIS FILE IS AUTO GENERATED]]
+- [[#description][Description]]
 - [[#chats][Chats]]
   - [[#erc][ERC]]
   - [[#jabber][Jabber]]
@@ -46,6 +46,7 @@
   - [[#keyboard-layout][Keyboard-layout]]
 - [[#miscellaneous][Miscellaneous]]
   - [[#copy-as-format][Copy-as-format]]
+  - [[#dtrt-indent][Dtrt-indent]]
   - [[#ietf][Ietf]]
   - [[#multiple-cursors][Multiple-cursors]]
   - [[#nlinum][Nlinum]]
@@ -254,7 +255,8 @@
   - [[#twitter][Twitter]]
   - [[#wakatime][Wakatime]]
 
-* THIS FILE IS AUTO GENERATED
+* Description
+This file is auto-generated!
 Don't edit it directly.
 See [[https://github.com/syl20bnr/spacemacs/blob/develop/CONTRIBUTING.org#readmeorg-tags]["README.org tags" section of CONTRIBUTING.org for the instructions]].
 
@@ -714,6 +716,16 @@ This layer adds support for [[https://github.com/sshaw/copy-as-format][copy-as-f
 Features:
 - Function to copy buffer locations as GitHub/Slack/JIRA/HipChat/... formatted code
 
+** Dtrt-indent
+[[file:+misc/dtrt-indent/README.org][+misc/dtrt-indent/README.org]]
+
+This is a simple layer wrapping the dtrt-indent Emacs package for automatic detection and switching of indentation style.
+
+It is automatically enabled using the method [[https://github.com/syl20bnr/spacemacs/issues/3203#issuecomment-264175032][suggested here]].
+
+Features:
+- Indentation style detection and automatic configuration to match file in open buffer.
+
 ** Ietf
 [[file:+misc/ietf/README.org][+misc/ietf/README.org]]
 
@@ -829,7 +841,7 @@ Features:
 - Support for selecting, copying and opening links using =avy= via =link-hint=.
 - Adding of sample text via =lorem-ipsum=.
 - Transient state for moving text via =move-text=.
-- Support for folding of code via =origami=.
+- Support for folding of code via =origami= and =evil-vimish-fold=.
 - Support for password generation via =password-generator=.
 - Support for improving parenthesis handling via =smartparens=.
 - Automatic whitespace cleanup on save via =spacemacs-whitespace-cleanup=.
@@ -1898,7 +1910,7 @@ This layer adds support for F# language using [[https://github.com/fsharp/fsharp
 
 Features:
 - Syntax highlighting
-- Code completion
+- Code completion (through Eglot)
 - Flycheck integration
 - REPL
 - Compile/Run/Interpreter and info tooltip shortcuts
@@ -2041,6 +2053,7 @@ Features:
 - auto-completion with company mode via [[https://github.com/ocaml/merlin][merlin]]
 - syntax-checking via [[https://github.com/flycheck/flycheck-ocaml][flycheck-ocaml]] (or alternatively [[https://github.com/ocaml/merlin][merlin]])
 - =dune= file syntax highlighting and template insertion via [[https://github.com/ocaml/dune/][dune-mode]]
+- Automatic formatting via [[https://github.com/ocaml-ppx/ocamlformat][ocamlformat]]
 
 **** Pact
 [[file:+lang/pact/README.org][+lang/pact/README.org]]
@@ -2500,7 +2513,7 @@ Features:
 This layer loads the necessary packages for spacemacs to start-up.
 
 Features:
-- Loads =evil= key bindings and macros for auto-evilifcation of maps
+- Loads =evil= key bindings and macros for auto-evilification of maps
 - Loads =holy= and =hybrid= modes
 - Loads the official Spacemacs theme
 - Loads =use-package= which is used to load other packages more easily
@@ -2797,7 +2810,7 @@ This layer adds support for basic language server protocol packages speaking
 Different language servers may support the language server protocol to varying degrees
 and they may also provide extensions; check the language server's website for
 details.
-=M-x lsp-describe-session= in a LSP buffer to list capabilities of the server.
+~M-x lsp-describe-session~ in a LSP buffer to list capabilities of the server.
 
 Features:
 - Cross references (definitions, references, document symbol, workspace symbol
@@ -2805,12 +2818,12 @@ Features:
 - Workspace-wide symbol rename
 - Symbol highlighting
 - Flycheck
-- Completion with =lsp=
-- Signature help with eldoc
+- Completion with =LSP=
+- Signature help with =eldoc=
 - Symbol documentation in a child frame (=lsp-ui-doc=)
-- Navigation using imenu
+- Navigation using =imenu=
 - Consistent core key bindings in LSP modes
-- Code folding (lsp-origami)
+- Code folding (=lsp-origami=)
 
 ** Meson
 [[file:+tools/meson/README.org][+tools/meson/README.org]]

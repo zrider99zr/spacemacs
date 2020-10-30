@@ -58,7 +58,7 @@
       (spacemacs/set-leader-keys
         dotspacemacs-emacs-command-key 'counsel-M-x
         ;; files
-        "ff"  'counsel-find-file
+        "ff"  'spacemacs/counsel-find-file
         "fel" 'counsel-find-library
         "fL"  'counsel-locate
         ;; help
@@ -206,12 +206,14 @@
         "Ce" 'counsel-colors-emacs
         "Cf" 'counsel-faces
         "Cw" 'counsel-colors-web
-        "fr" 'counsel-recentf
+        "fr" 'spacemacs/counsel-recentf
         "rl" 'ivy-resume
+        "sl" 'ivy-resume
         "bb" 'ivy-switch-buffer)
       ;; Moved C-k to C-M-k
-      (define-key ivy-switch-buffer-map (kbd "C-M-k") 'ivy-switch-buffer-kill))
-
+      (define-key ivy-switch-buffer-map (kbd "C-M-k") 'ivy-switch-buffer-kill)
+      (define-key ivy-reverse-i-search-map
+        (kbd "C-M-k") 'ivy-reverse-i-search-kill))
     :config
     (progn
       ;; custom actions for recentf
@@ -249,11 +251,14 @@
       (setq ivy-use-selectable-prompt t))))
 
 (defun ivy/init-ivy-avy ()
-  (use-package ivy-avy))
+  (use-package ivy-avy
+    :after ivy))
 
 (defun ivy/init-ivy-hydra ()
-  (use-package ivy-hydra)
-  (define-key hydra-ivy/keymap [escape] 'hydra-ivy/keyboard-escape-quit-and-exit))
+  (use-package ivy-hydra
+    :after ivy
+    :config
+    (define-key hydra-ivy/keymap [escape] 'hydra-ivy/keyboard-escape-quit-and-exit)))
 
 (defun ivy/init-ivy-rich ()
   (use-package ivy-rich
