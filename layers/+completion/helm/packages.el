@@ -85,6 +85,9 @@
         (global-set-key (kbd "M-x") 'spacemacs/helm-M-x-fuzzy-matching))
       (global-set-key (kbd "C-x C-f") 'spacemacs/helm-find-files)
       (global-set-key (kbd "C-x b") 'helm-buffers-list)
+      ;; use helm to switch last(/previous) visited buffers with C(-S)-tab
+      (evil-global-set-key 'motion (kbd "<C-tab>") 'helm-buffers-list)
+      (evil-global-set-key 'motion (kbd "<C-iso-lefttab>") 'helm-buffers-list)
       ;; use helm everywhere
       (spacemacs||set-helm-key "<f1>" helm-apropos)
       (spacemacs||set-helm-key "a'"   helm-available-repls)
@@ -153,7 +156,9 @@
                   ;; to overwrite any key binding
                   (unless (configuration-layer/layer-usedp 'smex)
                     (spacemacs/set-leader-keys
-                      dotspacemacs-emacs-command-key 'spacemacs/helm-M-x-fuzzy-matching)))))
+                      dotspacemacs-emacs-command-key 'spacemacs/helm-M-x-fuzzy-matching))))
+      ;; avoid duplicates in `helm-M-x' history.
+      (setq history-delete-duplicates t))
     :config
     (progn
       (helm-mode)
@@ -161,13 +166,17 @@
       (advice-add 'helm-grep-save-results-1 :after 'spacemacs//gne-init-helm-grep)
       ;; helm-locate uses es (from everything on windows which doesn't like fuzzy)
       (helm-locate-set-command)
-      (setq helm-locate-fuzzy-match (and helm-use-fuzzy (string-match "locate" helm-locate-command)))
+      (setq helm-locate-fuzzy-match (and (bound-and-true-p helm-use-fuzzy)
+                                         (string-match "locate" helm-locate-command)))
       (setq helm-boring-buffer-regexp-list
             (append helm-boring-buffer-regexp-list
                     spacemacs-useless-buffers-regexp))
       (setq helm-white-buffer-regexp-list
             (append helm-white-buffer-regexp-list
                     spacemacs-useful-buffers-regexp))
+      ;; use helm to switch last(/previous) visited buffers with C(-S)-tab
+      (define-key helm-map (kbd "<C-tab>") 'helm-follow-action-forward)
+      (define-key helm-map (kbd "<C-iso-lefttab>") 'helm-follow-action-backward)
       ;; alter helm-bookmark key bindings to be simpler
       (defun simpler-helm-bookmark-keybindings ()
         (define-key helm-bookmark-map (kbd "C-d") 'helm-bookmark-run-delete)
@@ -211,7 +220,6 @@
 
       ;; evilify the helm-grep buffer
       (evilified-state-evilify helm-grep-mode helm-grep-mode-map
-        (kbd "RET") 'helm-grep-mode-jump-other-window
         (kbd "q") 'quit-window)
 
       (spacemacs/set-leader-keys
@@ -273,7 +281,6 @@
       (advice-add 'helm-ag--save-results :after 'spacemacs//gne-init-helm-ag)
       (evil-define-key 'normal helm-ag-map "SPC" spacemacs-default-map)
       (evilified-state-evilify helm-ag-mode helm-ag-mode-map
-        (kbd "RET") 'helm-ag-mode-jump-other-window
         (kbd "gr") 'helm-ag--update-save-results
         (kbd "q") 'quit-window))))
 
@@ -399,7 +406,6 @@
     (progn
       (setq helm-swoop-split-with-multiple-windows t
             helm-swoop-split-direction 'split-window-vertically
-            helm-swoop-speed-or-color t
             helm-swoop-split-window-function 'spacemacs/helm-swoop-split-window-function
             helm-swoop-pre-input-function (lambda () ""))
 

@@ -9,25 +9,45 @@
 ;;
 ;;; License: GPLv3
 
-(setq fsharp-packages
-      '(
-        fsharp-mode
-        ggtags
-        counsel-gtags
-        helm-gtags
-        ))
+(defconst fsharp-packages
+  '(
+    company
+    counsel-gtags
+    (eglot-fsharp :toggle (eq (spacemacs//fsharp-backend) 'eglot))
+    flycheck
+    fsharp-mode
+    ggtags
+    helm-gtags
+    ))
+
+(defun fsharp/post-init-company ()
+  (spacemacs//fsharp-setup-company))
+
+(defun fsharp/post-init-flycheck ()
+  (spacemacs/enable-flycheck 'fsharp-mode))
+
+(defun fsharp/init-eglot-fsharp ()
+  (use-package eglot-fsharp
+    :defer t
+    :init
+    (progn
+      (require 'f)
+      (setq eglot-fsharp-server-install-dir
+            (expand-file-name
+             (locate-user-emacs-file (f-join ".cache" "eglot")))))))
 
 (defun fsharp/init-fsharp-mode ()
   (use-package fsharp-mode
     :defer t
     :init
     (progn
-      (require 'eglot-fsharp)
+      (when (eq (spacemacs//fsharp-backend) 'eglot)
+        (require 'eglot-fsharp))
       (setq fsharp-doc-idle-delay .2)
-      (spacemacs/register-repl 'fsharp-mode 'fsharp-show-subshell "F#"))
+      (spacemacs/register-repl 'fsharp-mode 'fsharp-show-subshell "F#")
+      (add-hook 'fsharp-mode-hook #'spacemacs//fsharp-setup-backend))
     :config
     (progn
-
       (defun spacemacs/fsharp-load-buffer-file-focus ()
         "Send the current buffer to REPL and switch to the REPL in
  `insert state'."
@@ -35,7 +55,6 @@
         (fsharp-load-buffer-file)
         (switch-to-buffer-other-window inferior-fsharp-buffer-name)
         (evil-insert-state))
-
       (defun spacemacs/fsharp-eval-phrase-focus ()
         "Send the current phrase to REPL and switch to the REPL in
  `insert state'."
@@ -43,7 +62,6 @@
         (fsharp-eval-phrase)
         (switch-to-buffer-other-window inferior-fsharp-buffer-name)
         (evil-insert-state))
-
       (defun spacemacs/fsharp-eval-region-focus (start end)
         "Send the current phrase to REPL and switch to the REPL in
  `insert state'."
@@ -52,29 +70,14 @@
         (switch-to-buffer-other-window inferior-fsharp-buffer-name)
         (evil-insert-state))
 
-      (defun spacemacs/fsharp-eglot-jack-in ()
-        "Start a new Eglot server instance or reconnect."
-        (interactive)
-        (call-interactively 'eglot))
-
-      (spacemacs/declare-prefix-for-mode 'fsharp-mode "mf" "find")
-      (spacemacs/declare-prefix-for-mode 'fsharp-mode "ms" "interpreter")
-      (spacemacs/declare-prefix-for-mode 'fsharp-mode "mx" "executable")
+      (spacemacs/declare-prefix-for-mode 'fsharp-mode "ms" "repl")
       (spacemacs/declare-prefix-for-mode 'fsharp-mode "mc" "compile")
-      (spacemacs/declare-prefix-for-mode 'fsharp-mode "mg" "goto")
-      (spacemacs/declare-prefix-for-mode 'fsharp-mode "mh" "hint")
+      (when (eq (spacemacs//fsharp-backend) 'eglot)
+        (spacemacs/declare-prefix-for-mode 'fsharp-mode "mg" "goto"))
 
       (spacemacs/set-leader-keys-for-major-mode 'fsharp-mode
-        ;; Compile
         "cc" 'compile
-
-        "ej" 'spacemacs/fsharp-eglot-jack-in
-
-        "fa" 'fsharp-find-alternate-file
-
-        "ht" 'fsharp-ac/show-tooltip-at-point
-
-        "'"  'fsharp-show-subshell
+        "ga" 'fsharp-find-alternate-file
         "sb" 'fsharp-load-buffer-file
         "sB" 'spacemacs/fsharp-load-buffer-file-focus
         "si" 'fsharp-show-subshell
@@ -82,9 +85,7 @@
         "sP" 'spacemacs/fsharp-eval-phrase-focus
         "sr" 'fsharp-eval-region
         "sR" 'spacemacs/fsharp-eval-region-focus
-        "ss" 'fsharp-show-subshell
-
-        "xf" 'fsharp-run-executable-file))))
+        "'"  'fsharp-show-subshell))))
 
 (defun fsharp/post-init-ggtags ()
   (add-hook 'fsharp-mode-local-vars-hook #'spacemacs/ggtags-mode-enable))

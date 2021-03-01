@@ -70,7 +70,7 @@
     :init
     (progn
       (setq ess-use-company nil
-						ess-offset-continued 'straight
+            ess-offset-continued 'straight
             ess-nuke-trailing-whitespace-p t
             ess-default-style 'DEFAULT)
 
